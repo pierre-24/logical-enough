@@ -1,0 +1,10 @@
+before_script:
+  - pip3 install pipenv
+  - make init
+
+test_package:
+  tags:
+    - python-numpy
+  script:
+    - make test
+    - make lint
