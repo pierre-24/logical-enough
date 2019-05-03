@@ -1,6 +1,8 @@
 from unittest import TestCase
+import json
 
 import logic
+import app
 
 
 class TestLogic(TestCase):
@@ -23,7 +25,7 @@ class TestLogic(TestCase):
 
     def test_match(self):
         exprs_match = [
-            ('a', ['a', 'a b'], ['b', '']),
+            ('a', ['a', 'a b', 'b a'], ['b', '']),
             ('-a', ['b', ''], ['a']),
             ('a OR b', ['a', 'a b', 'b', 'a c'], ['c', '']),
             ('(a OR b) c', ['a c', 'b c'], ['a', 'b', 'c', '']),
@@ -38,3 +40,27 @@ class TestLogic(TestCase):
                 self.assertTrue(s.match(x), msg=e + ' is not matching ' + x)
             for x in nst:
                 self.assertFalse(s.match(x), msg=e + ' is matching ' + x)
+
+
+class TestAPI(TestCase):
+
+    def setUp(self):
+        self.app = app.app.test_client()
+
+    def test_match(self):
+
+        def make_request(expr, doc):
+            response = self.app.get(
+                '/api/check', data={'search_expression': expr, 'document': doc})
+            j = json.loads(response.get_data().decode())
+            return j
+
+        # correct behavior
+        self.assertTrue(make_request('a', 'a')['matched'])
+
+        self.assertFalse(make_request('-a', 'a')['matched'])
+        self.assertFalse(make_request('', 'a')['matched'])
+        self.assertFalse(make_request('a', '')['matched'])
+
+        # error behavior
+        self.assertIn('message', make_request('a b OR c', 'a'))  # OR in a AND expression

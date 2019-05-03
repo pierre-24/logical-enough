@@ -5,6 +5,7 @@ name = "pypi"
 
 [packages]
 flask = "*"
+Flask-RESTful = "*"
 
 [dev-packages]
 "flake8" = "*"

@@ -1,11 +1,17 @@
-from flask import Flask
+import commons
+import views_api
 
-app = Flask(__name__)
+app, api = commons.create_app()
 
 
+# APP
 @app.route('/')
 def hello_world():
     return 'Hello World!'
+
+
+# API
+api.add_resource(views_api.CheckMatch, '/api/check')
 
 
 if __name__ == '__main__':
