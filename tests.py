@@ -1,8 +1,14 @@
 from unittest import TestCase
 import json
+import tempfile
+import shutil
+import os
 
 import logic
 import app
+import settings
+from commons import db
+from models import User
 
 
 class TestLogic(TestCase):
@@ -42,15 +48,49 @@ class TestLogic(TestCase):
                 self.assertFalse(s.match(x), msg=e + ' is matching ' + x)
 
 
-class TestAPI(TestCase):
+class TestFlask(TestCase):
 
     def setUp(self):
-        self.app = app.app.test_client()
+        self.app = app.app
 
+        self.app.config['TESTING'] = True
+        # self.app.config['WTF_CSRF_ENABLED'] = False
+
+        # use temp directory
+        self.data_files_directory = tempfile.mkdtemp()
+        settings.DATA_FILES_DIRECTORY = self.data_files_directory
+
+        # push context
+        self.app_context = self.app.app_context()
+        self.app_context.push()
+
+        # use temporary database
+        self.db_file = 'temp.db'
+        self.app.config['SQLALCHEMY_DATABASE_URI'] = \
+            'sqlite:///' + os.path.join(self.data_files_directory, self.db_file)
+
+        db.create_all()
+        self.db_session = db.session
+
+        # add admin
+        self.admin = User('admin', is_admin=True)
+        self.db_session.add(self.admin)
+        self.db_session.commit()
+        self.admin = User.query.filter(User.eid.is_('admin')).first()
+
+        # create client
+        self.client = self.app.test_client(use_cookies=True)
+
+    def tearDown(self):
+        shutil.rmtree(self.data_files_directory)
+        self.app_context.pop()
+
+
+class TestAPI(TestFlask):
     def test_match(self):
 
         def make_request(expr, doc):
-            response = self.app.get(
+            response = self.client.get(
                 '/api/check', data={'search_expression': expr, 'document': doc})
             j = json.loads(response.get_data().decode())
             return j
