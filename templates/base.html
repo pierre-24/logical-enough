@@ -1,0 +1,49 @@
+{% extends "bootstrap/base.html" %}
+{% import "bootstrap/utils.html" as utils %}
+
+{% block styles %}
+    {{ super() }}
+    <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet" />
+{% endblock %}
+
+{% block navbar %}
+    <nav role="navigation"  class="navbar navbar-default navbar-static-top-top">
+    <div class="container">
+     <div class="navbar-header">
+            <a href="{{ url_for('index') }}" class="navbar-brand">Logical Enough!</a>
+        </div>
+
+    <ul class="nav navbar-nav navbar-right">
+        {%  if user %}
+            <li><a href="{{ url_for('logout') }}">Se déconnecter</a></li>
+            {% if user.is_admin %}
+            {% endif %}
+        {% endif %}
+    </ul>
+    </div>
+    </nav>
+{% endblock %}
+
+{% block content %}
+    <div id="wrapper">
+        {{ utils.flashed_messages() }}
+
+        {% block page_content %}{% endblock %}
+    </div>
+
+    <footer>
+        <div class="container">
+            Made with <span class="glyphicon glyphicon-heart"></span> by Pierre Beaujean in <a href="https://www.python.org/">Python 3</a>, using <a href="http://flask.pocoo.org/">Flask</a>, <a href="http://getbootstrap.com/">Boostrap</a> and <a href="http://www.sqlalchemy.org/">SQL Alchemy</a>.
+            Hosted by <a href="https://www.digitalocean.com/">Digital Ocean</a> and powered by <a href="http://nginx.org/">NGINX</a>.
+        </div>
+    </footer>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script>
+    $(function () {
+      $('[data-toggle="tooltip"]').tooltip()
+    });
+    </script>
+{% endblock %}

@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block title %}Logical enough{% endblock %}
+
+{% block page_content %}
+    {% if not user.is_admin %}
+    <div class="container" id="bingoContainer">
+        <div class="alert alert-info">Chargement ...</div>
+    </div>
+    {% else %}
+        <div class="container">
+            <div class="alert alert-info">
+                Les admins ne peuvent pas jouer.
+                Allez plutôt faire des trucs d'amin, ...
+            </div>
+        </div>
+    {% endif %}
+{% endblock %}

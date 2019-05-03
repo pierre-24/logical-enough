@@ -4,11 +4,14 @@ import tempfile
 import shutil
 import os
 
+import flask
+
 import logic
 import app
 import settings
 from commons import db
 from models import User
+from views import PageContextMixin
 
 
 class TestLogic(TestCase):
@@ -54,7 +57,8 @@ class TestFlask(TestCase):
         self.app = app.app
 
         self.app.config['TESTING'] = True
-        # self.app.config['WTF_CSRF_ENABLED'] = False
+        self.app.config['WTF_CSRF_ENABLED'] = False
+        self.app.config['SERVER_NAME'] = 'localhost'
 
         # use temp directory
         self.data_files_directory = tempfile.mkdtemp()
@@ -72,11 +76,19 @@ class TestFlask(TestCase):
         db.create_all()
         self.db_session = db.session
 
-        # add admin
+        # add admin and user
         self.admin = User('admin', is_admin=True)
         self.db_session.add(self.admin)
+
+        self.user = User('user', is_admin=False)
+        self.db_session.add(self.user)
+
         self.db_session.commit()
+
         self.admin = User.query.filter(User.eid.is_('admin')).first()
+        self.assertIsNotNone(self.admin)
+        self.user = User.query.filter(User.eid.is_('user')).first()
+        self.assertIsNotNone(self.user)
 
         # create client
         self.client = self.app.test_client(use_cookies=True)
@@ -85,9 +97,26 @@ class TestFlask(TestCase):
         shutil.rmtree(self.data_files_directory)
         self.app_context.pop()
 
+    def login(self, username):
+        """Login client."""
+
+        self.client.post(flask.url_for('login'), data={
+            'login': username,
+        }, follow_redirects=False)
+
+        with self.client.session_transaction() as session:
+            return PageContextMixin.LOGIN_VAR in session
+
+    def logout(self):
+        """Logout client"""
+        self.client.get(flask.url_for('logout'), follow_redirects=False)
+
+        with self.client.session_transaction() as session:
+            return PageContextMixin.LOGIN_VAR not in session
+
 
 class TestAPI(TestFlask):
-    def test_match(self):
+    def test_check(self):
 
         def make_request(expr, doc):
             response = self.client.get(
@@ -104,3 +133,45 @@ class TestAPI(TestFlask):
 
         # error behavior
         self.assertIn('message', make_request('a b OR c', 'a'))  # OR in a AND expression
+
+
+class TestViews(TestFlask):
+
+    def test_login_logout(self):
+        """Test the behavior of the login and logout pages"""
+
+        # good credentials:
+        self.assertTrue(self.login(self.user.eid))
+
+        with self.client.session_transaction() as session:
+            self.assertIn(PageContextMixin.LOGIN_VAR, session)
+            self.assertEqual(session[PageContextMixin.LOGIN_VAR], self.user.id)
+            self.assertFalse(session['is_admin'])
+
+        self.assertTrue(self.logout())
+
+        with self.client.session_transaction() as session:
+            self.assertNotIn(PageContextMixin.LOGIN_VAR, session)
+
+        # wrong credentials:
+        self.assertFalse(self.login(self.user.eid + 'x'))
+
+        # if already connected, get redirect
+        self.assertTrue(self.login(self.user.eid))
+
+        response = self.client.get(flask.url_for('login'))
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(b'Redirecting' in response.data)
+
+        response = self.client.post(flask.url_for('login'))
+        self.assertEqual(response.status_code, 302)  # redirected in post as well !
+        self.assertTrue(b'Redirecting' in response.data)
+
+        # check admin
+        self.assertTrue(self.logout())
+        self.assertTrue(self.login(self.admin.eid))
+
+        with self.client.session_transaction() as session:
+            self.assertIn(PageContextMixin.LOGIN_VAR, session)
+            self.assertEqual(session[PageContextMixin.LOGIN_VAR], self.admin.id)
+            self.assertTrue(session['is_admin'])

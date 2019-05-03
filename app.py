@@ -5,11 +5,12 @@ import commons
 import views_api
 import settings
 import models
+import views
 
 app, api = commons.create_app()
 
 
-# APP
+# CLI
 @app.cli.command('init')
 def init_db_command():
     """Initializes the directory and the database"""
@@ -36,9 +37,10 @@ def init_db_command():
 
 
 # Views
-@app.route('/')
-def hello_world():
-    return 'Hello World!'
+app.add_url_rule('/', view_func=views.IndexPage.as_view('index'), endpoint='index')
+
+app.add_url_rule('/login.html', view_func=views.LoginPage.as_view('login'), endpoint='login')
+app.add_url_rule('/logout.html', view_func=views.logout, endpoint='logout')
 
 
 # API
