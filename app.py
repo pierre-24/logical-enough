@@ -27,6 +27,7 @@ def init_db_command():
     commons.db.create_all()
     print('!! SQLite database in {}'.format(path))
 
+    # add an admin user
     name_admin = 'admin{}'.format(''.join([chr(random.randrange(65, 90)) for _ in range(6)]))
     user = models.User(name_admin, is_admin=True)
     commons.db.session.add(user)
