@@ -175,3 +175,78 @@ class TestViews(TestFlask):
             self.assertIn(PageContextMixin.LOGIN_VAR, session)
             self.assertEqual(session[PageContextMixin.LOGIN_VAR], self.admin.id)
             self.assertTrue(session['is_admin'])
+
+    def test_admin_user_management(self):
+        self.assertTrue(self.login(self.admin.eid))
+
+        # add normal user
+        eid = 'xxx'
+
+        user_count = User.query.count()
+
+        response = self.client.post(flask.url_for('admin-users'), data={
+            'eid': eid
+        }, follow_redirects=False)
+        self.assertEqual(response.status_code, 302)
+
+        self.assertEqual(User.query.count(), user_count + 1)
+
+        last_user = User.query.order_by(User.id.desc()).first()
+        self.assertEqual(last_user.eid, eid)
+        self.assertFalse(last_user.is_admin)
+
+        # delete user
+        response = self.client.delete(flask.url_for('admin-users-delete', id=last_user.id))
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(User.query.count(), user_count)
+
+        # add admin
+        response = self.client.post(flask.url_for('admin-users'), data={
+            'eid': eid,
+            'is_admin': True
+        }, follow_redirects=False)
+        self.assertEqual(response.status_code, 302)
+
+        self.assertEqual(User.query.count(), user_count + 1)
+
+        last_user = User.query.order_by(User.id.desc()).first()
+        self.assertEqual(last_user.eid, eid)
+        self.assertTrue(last_user.is_admin)
+
+        # cannot delete admin
+        response = self.client.delete(flask.url_for('admin-users-delete', id=last_user.id))
+        self.assertEqual(response.status_code, 403)
+
+        self.assertEqual(User.query.count(), user_count + 1)
+
+        # cannot delete unknown user
+        response = self.client.delete(flask.url_for('admin-users-delete', id=last_user.id + 1))
+        self.assertEqual(response.status_code, 404)
+
+        # cannot add twice the same person
+        response = self.client.post(flask.url_for('admin-users'), data={
+            'eid': eid
+        }, follow_redirects=False)
+        self.assertEqual(response.status_code, 200)
+
+        self.assertEqual(User.query.count(), user_count + 1)
+
+        # normal user cannot add user
+        self.logout()
+        self.assertTrue(self.login(self.user.eid))
+
+        eid += 'x'
+
+        response = self.client.post(flask.url_for('admin-users'), data={
+            'eid': eid,
+            'is_admin': True
+        }, follow_redirects=False)
+        self.assertEqual(response.status_code, 403)
+
+        self.assertEqual(User.query.count(), user_count + 1)
+
+        # normal user cannot delete
+        response = self.client.delete(flask.url_for('admin-users-delete', id=last_user.id))
+        self.assertEqual(response.status_code, 403)
+
+        self.assertEqual(User.query.count(), user_count + 1)

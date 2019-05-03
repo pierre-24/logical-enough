@@ -4,7 +4,8 @@ import flask
 from flask.views import MethodView
 
 from models import User
-from forms import LoginForm
+from forms import LoginForm, UserForm
+import commons
 
 
 class RenderTemplateView(MethodView):
@@ -73,6 +74,51 @@ class FormView(RenderTemplateView):
             return flask.redirect(self.failure_url)
 
 
+class DeleteView(MethodView):
+
+    success_url = '/'
+    model = None
+    url_parameter = 'id'
+
+    def get_object(self, *args, **kwargs):
+
+        obj = self.model.query.get(kwargs.get(self.url_parameter))
+
+        if obj is None:
+            flask.abort(404)
+
+        return obj
+
+    def pre_deletion(self, obj):
+        """
+        Performs an action before deletion from database (checks something, for example)
+        Note: if return `False`, deletion is not performed
+        """
+        return True
+
+    def post_deletion(self, obj):
+        """Performs an action after deletion from database"""
+        pass
+
+    def post(self, *args, **kwargs):
+        return self.delete(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        """Handle delete"""
+
+        obj = self.get_object(*args, **kwargs)
+
+        if not self.pre_deletion(obj):
+            return flask.abort(403)
+
+        commons.db.session.delete(obj)
+        commons.db.session.commit()
+
+        self.post_deletion(obj)
+
+        return flask.redirect(self.success_url)
+
+
 class PageContextMixin:
     """Maintain the logged_in information in context"""
 
@@ -124,7 +170,7 @@ class PageContextMixin:
     def admin_required(f):
         @functools.wraps(f)
         def decorated_function(*args, **kwargs):
-            if 'is_admin' not in flask.session:
+            if 'is_admin' not in flask.session or not flask.session['is_admin']:
                 return flask.abort(403)
             return f(*args, **kwargs)
         return decorated_function
@@ -176,3 +222,48 @@ class LoginPage(FormView):
 
         else:
             return self.form_invalid(form)
+
+
+# ADMIN
+class AdminUsersPage(PageContextMixin, FormView):
+    form_class = UserForm
+    decorators = [PageContextMixin.login_required, PageContextMixin.admin_required]
+    template_name = 'admin/users.html'
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+
+        context['users'] = User.query.all()
+        return context
+
+    def form_valid(self, form):
+
+        if User.query.filter(User.eid.is_(form.eid.data)).count() > 0:
+            flask.flash("Impossible d'ajouter 2 fois la même personne", 'error')
+            return super().form_invalid(form)
+
+        user = User(form.eid.data, is_admin=form.is_admin.data)
+        commons.db.session.add(user)
+        commons.db.session.commit()
+
+        flask.flash('Personne ajoutée', 'success')
+        self.success_url = flask.url_for('admin-users')
+
+        return super().form_valid(form)
+
+
+class AdminUsersDelete(DeleteView):
+    decorators = [PageContextMixin.login_required, PageContextMixin.admin_required]
+    model = User
+
+    def pre_deletion(self, obj):
+        if obj.is_admin:
+            flask.flash('Impossible de supprimer un admin !!', 'error')
+            return False
+
+        return True
+
+    def delete(self, *args, **kwargs):
+        self.success_url = flask.url_for('admin-users')
+        flask.flash('Utilisateur supprimé', 'success')
+        return super().delete(*args, **kwargs)

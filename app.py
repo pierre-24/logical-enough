@@ -42,6 +42,15 @@ app.add_url_rule('/', view_func=views.IndexPage.as_view('index'), endpoint='inde
 app.add_url_rule('/login.html', view_func=views.LoginPage.as_view('login'), endpoint='login')
 app.add_url_rule('/logout.html', view_func=views.logout, endpoint='logout')
 
+app.add_url_rule(
+    '/admin/utilisateurs.html', view_func=views.AdminUsersPage.as_view('admin-users'), endpoint='admin-users')
+
+
+app.add_url_rule(
+    '/admin/utilisateurs-<int:id>.html',
+    view_func=views.AdminUsersDelete.as_view('admin-users-delete'),
+    endpoint='admin-users-delete')
+
 
 # API
 api.add_resource(views_api.CheckMatch, '/api/check')
