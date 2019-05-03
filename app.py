@@ -44,12 +44,23 @@ app.add_url_rule('/logout.html', view_func=views.logout, endpoint='logout')
 
 app.add_url_rule(
     '/admin/utilisateurs.html', view_func=views.AdminUsersPage.as_view('admin-users'), endpoint='admin-users')
-
-
 app.add_url_rule(
-    '/admin/utilisateurs-<int:id>.html',
+    '/admin/utilisateurs-del-<int:id>.html',
     view_func=views.AdminUsersDelete.as_view('admin-users-delete'),
     endpoint='admin-users-delete')
+
+app.add_url_rule(
+    '/admin/challenges.html',
+    view_func=views.AdminChallengePage.as_view('admin-challenges'),
+    endpoint='admin-challenges')
+app.add_url_rule(
+    '/admin/challenges-del-<int:id>.html',
+    view_func=views.AdminChallengesDelete.as_view('admin-challenges-delete'),
+    endpoint='admin-challenges-delete')
+app.add_url_rule(
+    '/admin/challenges-vue-<int:id>.html',
+    view_func=views.AdminChallengesToggle.as_view('admin-challenges-toggle'),
+    endpoint='admin-challenges-toggle')
 
 
 # API

@@ -10,7 +10,7 @@ import logic
 import app
 import settings
 from commons import db
-from models import User
+from models import User, Challenge
 from views import PageContextMixin
 
 
@@ -176,7 +176,7 @@ class TestViews(TestFlask):
             self.assertEqual(session[PageContextMixin.LOGIN_VAR], self.admin.id)
             self.assertTrue(session['is_admin'])
 
-    def test_admin_user_management(self):
+    def test_admin_users_management(self):
         self.assertTrue(self.login(self.admin.eid))
 
         # add normal user
@@ -250,3 +250,63 @@ class TestViews(TestFlask):
         self.assertEqual(response.status_code, 403)
 
         self.assertEqual(User.query.count(), user_count + 1)
+
+    def test_admin_challenges_management(self):
+        self.assertTrue(self.login(self.admin.eid))
+
+        # add challenge
+        name = 'xxx'
+
+        challenges_count = Challenge.query.count()
+
+        response = self.client.post(flask.url_for('admin-challenges'), data={
+            'name': name
+        }, follow_redirects=False)
+        self.assertEqual(response.status_code, 302)
+
+        self.assertEqual(Challenge.query.count(), challenges_count + 1)
+
+        last_challenge = Challenge.query.order_by(Challenge.id.desc()).first()
+        self.assertEqual(last_challenge.name, name)
+        self.assertFalse(last_challenge.is_public)
+
+        # change challenge state
+        self.client.get(flask.url_for('admin-challenges-toggle', id=last_challenge.id))
+        last_challenge = Challenge.query.get(last_challenge.id)
+        self.assertTrue(last_challenge.is_public)
+
+        self.client.get(flask.url_for('admin-challenges-toggle', id=last_challenge.id))
+        last_challenge = Challenge.query.get(last_challenge.id)
+        self.assertFalse(last_challenge.is_public)
+
+        # delete challenge
+        response = self.client.delete(flask.url_for('admin-challenges-delete', id=last_challenge.id))
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(Challenge.query.count(), challenges_count)
+
+        # normal user can't do anything
+        response = self.client.post(flask.url_for('admin-challenges'), data={
+            'name': name
+        }, follow_redirects=False)
+        self.assertEqual(response.status_code, 302)
+
+        self.assertEqual(Challenge.query.count(), challenges_count + 1)  # add challenge
+        self.logout()
+        self.assertTrue(self.login(self.user.eid))
+
+        name += 'x'
+
+        response = self.client.post(flask.url_for('admin-challenges'), data={
+            'name': name
+        }, follow_redirects=False)
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(Challenge.query.count(), challenges_count + 1)  # cannot add
+
+        response = self.client.get(flask.url_for('admin-challenges-toggle', id=last_challenge.id))
+        self.assertEqual(response.status_code, 403)
+        last_challenge = Challenge.query.get(last_challenge.id)
+        self.assertFalse(last_challenge.is_public)  # cannot change state
+
+        response = self.client.delete(flask.url_for('admin-challenges-delete', id=last_challenge.id))
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(Challenge.query.count(), challenges_count + 1)  # cannot delete

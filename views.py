@@ -3,8 +3,8 @@ import functools
 import flask
 from flask.views import MethodView
 
-from models import User
-from forms import LoginForm, UserForm
+from models import User, Challenge
+from forms import LoginForm, UserForm, ChallengeForm
 import commons
 
 
@@ -267,3 +267,57 @@ class AdminUsersDelete(DeleteView):
         self.success_url = flask.url_for('admin-users')
         flask.flash('Utilisateur supprimé', 'success')
         return super().delete(*args, **kwargs)
+
+
+class AdminChallengePage(PageContextMixin, FormView):
+    form_class = ChallengeForm
+    decorators = [PageContextMixin.login_required, PageContextMixin.admin_required]
+    template_name = 'admin/challenges.html'
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+
+        context['challenges'] = Challenge.query.all()
+        return context
+
+    def form_valid(self, form):
+
+        if Challenge.query.filter(Challenge.name.is_(form.name.data)).count() > 0:
+            flask.flash("Impossible d'ajouter 2 fois le même challenge", 'error')
+            return super().form_invalid(form)
+
+        challenge = Challenge(form.name.data)
+        commons.db.session.add(challenge)
+        commons.db.session.commit()
+
+        flask.flash('Challenge créé', 'success')
+        self.success_url = flask.url_for('admin-challenges')
+
+        return super().form_valid(form)
+
+
+class AdminChallengesDelete(DeleteView):
+    decorators = [PageContextMixin.login_required, PageContextMixin.admin_required]
+    model = Challenge
+
+    def delete(self, *args, **kwargs):
+        self.success_url = flask.url_for('admin-challenges')
+        flask.flash('Challenge supprimé', 'success')
+        return super().delete(*args, **kwargs)
+
+
+class AdminChallengesToggle(PageContextMixin, MethodView):
+    decorators = [PageContextMixin.login_required, PageContextMixin.admin_required]
+
+    def get(self, *args, **kwargs):
+        id = kwargs.get('id', -1)
+        challenge = Challenge.query.get(id)
+
+        if challenge is not None:
+            challenge.is_public = not challenge.is_public
+            commons.db.session.add(challenge)
+            commons.db.session.commit()
+        else:
+            flask.flash("Ce challenge n'existe pas")
+
+        return flask.redirect(flask.url_for('admin-challenges'))

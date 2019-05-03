@@ -21,3 +21,10 @@ footer {
     color: #777;
     font-size: 90%;
 }
+
+/* SPECIFIC */
+.container-form form {
+    border: 1px solid #ddd;
+    border-top: 3px solid #ddd;
+    padding: 16px;
+}

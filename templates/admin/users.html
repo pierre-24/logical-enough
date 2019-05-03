@@ -2,10 +2,10 @@
 {% import 'bootstrap/wtf.html' as wtf %}
 {% import 'macros.inc.html' as m %}
 
-{% block title %}Joueurs{% endblock %}
+{% block title %}Utilisateurs{% endblock %}
 
 {% block page_content %}
-    <div class="container">
+    <div class="container container-form">
         {% if form_error %}
             <div class="alert alert-danger">
                 {{ form_error }}
@@ -15,7 +15,7 @@
     </div>
 
     <div class="container">
-        <h1>Joueurs</h1>
+        <h1>Utilisateurs</h1>
         <table class="table table-bordered">
             <thead>
                 <tr>
