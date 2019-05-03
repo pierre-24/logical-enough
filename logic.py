@@ -79,6 +79,18 @@ class Lexer:
 
         yield Token(EOF, None, self.pos)
 
+    def tokenize_and_filter(self):
+        """Filter tokens:
+
+        + Lower words (that are not "AND" or "OR") ;
+        """
+
+        for t in self.tokenize():
+            if t.type == WORD:
+                if t.value not in ['AND', 'OR']:
+                    t.value = t.value.lower()
+            yield t
+
 
 # Ast
 class AST:
@@ -173,7 +185,7 @@ class Parser:
 
     def __init__(self, lexer):
         self.lexer = lexer
-        self.tokenizer = lexer.tokenize()
+        self.tokenizer = lexer.tokenize_and_filter()
         self.current_token = None
 
         self.next()
