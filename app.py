@@ -51,20 +51,39 @@ app.add_url_rule(
 
 app.add_url_rule(
     '/admin/challenges.html',
-    view_func=views.AdminChallengePage.as_view('admin-challenges'),
+    view_func=views.AdminChallengesPage.as_view('admin-challenges'),
     endpoint='admin-challenges')
+
 app.add_url_rule(
-    '/admin/challenges-del-<int:id>.html',
-    view_func=views.AdminChallengesDelete.as_view('admin-challenges-delete'),
-    endpoint='admin-challenges-delete')
+    '/admin/challenge-<int:id>.html',
+    view_func=views.AdminChallengePage.as_view('admin-challenge'),
+    endpoint='admin-challenge')
 app.add_url_rule(
-    '/admin/challenges-vue-<int:id>.html',
-    view_func=views.AdminChallengesToggle.as_view('admin-challenges-toggle'),
-    endpoint='admin-challenges-toggle')
+    '/admin/challenges-<int:id>-changer-vue.html',
+    view_func=views.AdminChallengesToggle.as_view('admin-challenge-toggle'),
+    endpoint='admin-challenge-toggle')
+app.add_url_rule(
+    '/admin/challenges-<int:id>-del.html',
+    view_func=views.AdminChallengesDelete.as_view('admin-challenge-delete'),
+    endpoint='admin-challenge-delete')
+
+app.add_url_rule(
+    '/admin/challenge-<int:id>/nouvelle-question.html',
+    view_func=views.AdminCreateQuestionPage.as_view('admin-question-create'),
+    endpoint='admin-question-create')
+app.add_url_rule(
+    '/admin/challenge-<int:challenge_id>/question-<int:id>.html',
+    view_func=views.AdminQuestionPage.as_view('admin-question'),
+    endpoint='admin-question')
+app.add_url_rule(
+    '/admin/challenge-<int:challenge_id>/question-<int:id>-del.html',
+    view_func=views.AdminQuestionDelete.as_view('admin-question-delete'),
+    endpoint='admin-question-delete')
 
 
 # API
-api.add_resource(views_api.CheckMatch, '/api/check')
+api.add_resource(views_api.CheckMatch, '/api/checks')
+api.add_resource(views_api.CheckMatchMany, '/api/checks_many')
 
 
 if __name__ == '__main__':

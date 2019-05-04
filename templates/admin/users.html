@@ -29,7 +29,7 @@
                         <td><span>{{ p.eid }}</span> </td>
                         <td>
                             {% if not p.is_admin %}
-                                {{ m.gen_delete_dialog(p.id, p.eid, 'admin-users-delete', 'User') }}
+                                {{ m.gen_delete_dialog(p.id, p.eid, url_for('admin-users-delete', id=p.id), 'User') }}
                                 <a href="#deleteUser{{ p.id }}" data-toggle="modal">Supprimer</a>
                                 {% else %}
                                 <i>Néant</i>

@@ -3,9 +3,10 @@ import functools
 import flask
 from flask.views import MethodView
 
-from models import User, Challenge
-from forms import LoginForm, UserForm, ChallengeForm
+from models import User, Challenge, Question
+from forms import LoginForm, UserForm, ChallengeForm, QuestionForm
 import commons
+import logic
 
 
 class RenderTemplateView(MethodView):
@@ -30,6 +31,9 @@ class FormView(RenderTemplateView):
     failure_url = '/'
     modal_form = False
 
+    url_args = []
+    url_kwargs = {}
+
     def get_form_kwargs(self):
         return {}
 
@@ -50,6 +54,9 @@ class FormView(RenderTemplateView):
     def post(self, *args, **kwargs):
         """Handle POST: validate form."""
 
+        self.url_args = args
+        self.url_kwargs = kwargs
+
         if not self.form_class:
             raise ValueError('form_class')
 
@@ -69,27 +76,40 @@ class FormView(RenderTemplateView):
         """If the form is invalid, go back to the same page with an error"""
 
         if not self.modal_form:
-            return self.get(form=form)
+            return self.get(form=form, *self.url_args, **self.url_kwargs)
         else:
             return flask.redirect(self.failure_url)
 
 
-class DeleteView(MethodView):
-
-    success_url = '/'
+class GetObjectMixin:
     model = None
+    context_object_name = 'object'
     url_parameter = 'id'
+
+    object = None
 
     def get_object(self, *args, **kwargs):
 
-        obj = self.model.query.get(kwargs.get(self.url_parameter))
+        if self.object is None:
+            obj = self.model.query.get(kwargs.get(self.url_parameter))
 
-        if obj is None:
-            flask.abort(404)
+            if obj is None:
+                flask.abort(404)
 
-        return obj
+            self.object = obj
+        return self.object
 
-    def pre_deletion(self, obj):
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+        context[self.context_object_name] = self.get_object(*args, **kwargs)
+        return context
+
+
+class DeleteView(GetObjectMixin, MethodView):
+
+    success_url = '/'
+
+    def pre_deletion(self, obj, *args, **kwargs):
         """
         Performs an action before deletion from database (checks something, for example)
         Note: if return `False`, deletion is not performed
@@ -108,7 +128,7 @@ class DeleteView(MethodView):
 
         obj = self.get_object(*args, **kwargs)
 
-        if not self.pre_deletion(obj):
+        if not self.pre_deletion(obj, *args, **kwargs):
             return flask.abort(403)
 
         commons.db.session.delete(obj)
@@ -256,7 +276,7 @@ class AdminUsersDelete(DeleteView):
     decorators = [PageContextMixin.login_required, PageContextMixin.admin_required]
     model = User
 
-    def pre_deletion(self, obj):
+    def pre_deletion(self, obj, *args, **kwargs):
         if obj.is_admin:
             flask.flash('Impossible de supprimer un admin !!', 'error')
             return False
@@ -269,7 +289,7 @@ class AdminUsersDelete(DeleteView):
         return super().delete(*args, **kwargs)
 
 
-class AdminChallengePage(PageContextMixin, FormView):
+class AdminChallengesPage(PageContextMixin, FormView):
     form_class = ChallengeForm
     decorators = [PageContextMixin.login_required, PageContextMixin.admin_required]
     template_name = 'admin/challenges.html'
@@ -321,3 +341,154 @@ class AdminChallengesToggle(PageContextMixin, MethodView):
             flask.flash("Ce challenge n'existe pas")
 
         return flask.redirect(flask.url_for('admin-challenges'))
+
+
+class AdminChallengePage(PageContextMixin, GetObjectMixin, RenderTemplateView):
+
+    decorators = [PageContextMixin.login_required, PageContextMixin.admin_required]
+    template_name = 'admin/challenge.html'
+    model = Challenge
+    context_object_name = 'challenge'
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+        context['questions'] = Question.query.filter(Question.challenge.is_(self.object.id))
+
+        return context
+
+
+class AdminCreateQuestionPage(PageContextMixin, GetObjectMixin, FormView):
+    decorators = [PageContextMixin.login_required, PageContextMixin.admin_required]
+    template_name = 'admin/question-create.html'
+    model = Challenge
+    context_object_name = 'challenge'
+
+    form_class = QuestionForm
+
+    def post(self, *args, **kwargs):
+        self.get_object(*args, **kwargs)
+        return super().post(*args, **kwargs)
+
+    def form_valid(self, form):
+        q = AdminQuestionPage.treat_form(form, self.object)
+        if q is None:
+            return self.form_invalid(form)
+
+        commons.db.session.add(q)
+        commons.db.session.commit()
+
+        self.success_url = flask.url_for('admin-challenge', id=self.object.id)
+        return super().form_valid(form)
+
+
+class AdminQuestionPage(PageContextMixin, GetObjectMixin, FormView):
+
+    decorators = [PageContextMixin.login_required, PageContextMixin.admin_required]
+    model = Question
+    context_object_name = 'question'
+    template_name = 'admin/question-edit.html'
+    form_class = QuestionForm
+
+    challenge = None
+
+    def get_object(self, *args, **kwargs):
+        obj = super().get_object(*args, **kwargs)
+
+        if obj.challenge != kwargs.get('challenge_id', -1):
+            flask.abort(404)
+
+        self.challenge = Challenge.query.filter(Challenge.id.is_(obj.challenge)).first()
+        if self.challenge is None:
+            flask.abort(404)
+
+        return obj
+
+    def get(self, *args, **kwargs):
+        self.get_object(*args, **kwargs)
+        return super().get(*args, **kwargs)
+
+    def post(self, *args, **kwargs):
+        self.get_object(*args, **kwargs)
+        return super().post(*args, **kwargs)
+
+    def get_form_kwargs(self):
+        return {
+            'hint_expr': self.object.hint_expr,
+            'hint': self.object.hint,
+            'documents': ';'.join(self.object.get_documents())
+        }
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+        context['challenge'] = self.challenge
+        return context
+
+    @staticmethod
+    def treat_form(form, challenge, obj=None):
+        try:
+            search_expression = logic.parse(form.data.get('hint_expr'))
+        except logic.ParserException as e:
+            flask.flash('Erreur du parser: "{}"'.format(e), 'error')
+            return None
+
+        documents = form.data.get('documents').split(';')
+        good_docs = []
+        wrong_docs = []
+
+        for d in documents:
+            if search_expression.match(d):
+                good_docs.append(d)
+            else:
+                wrong_docs.append(d)
+
+        if len(good_docs) == 0:
+            flask.flash('Il doit y avoir au moins un bon document', 'error')
+            return None
+
+        if obj is None:
+            obj = Question(
+                challenge=challenge.id,
+                position=Challenge.query.count(),
+                wrong_docs=wrong_docs,
+                good_docs=good_docs,
+                hint=form.data.get('hint'),
+                hint_expr=str(search_expression)
+            )
+
+            flask.flash('Question ajoutée', 'success')
+        else:
+            obj.wrong_documents = ';'.join(wrong_docs)
+            obj.good_documents = ';'.join(good_docs)
+            obj.hint = form.data.get('hint')
+            obj.hint_expr = str(search_expression)
+
+            flask.flash('Question modifiée', 'success')
+
+        return obj
+
+    def form_valid(self, form):
+        q = AdminQuestionPage.treat_form(form, self.challenge, self.object)
+        if q is None:
+            return self.form_invalid(form)
+
+        commons.db.session.add(q)
+        commons.db.session.commit()
+        self.success_url = flask.url_for('admin-challenge', id=self.challenge.id)
+
+        return super().form_valid(form)
+
+
+class AdminQuestionDelete(DeleteView):
+    decorators = [PageContextMixin.login_required, PageContextMixin.admin_required]
+    model = Question
+
+    def pre_deletion(self, obj, *args, **kwargs):
+        if obj.challenge != kwargs.get('challenge_id', -1):
+            flask.abort(404)
+
+        self.success_url = flask.url_for('admin-challenge', id=self.object.challenge)
+        return True
+
+    def delete(self, *args, **kwargs):
+        flask.flash('Question supprimée', 'success')
+        return super().delete(*args, **kwargs)

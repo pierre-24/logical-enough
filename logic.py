@@ -311,3 +311,7 @@ class Parser:
         self.eat(EOF)
 
         return SearchExpr(node)
+
+
+def parse(expr):
+    return Parser(Lexer(expr)).search_expr()

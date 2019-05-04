@@ -28,3 +28,7 @@ footer {
     border-top: 3px solid #ddd;
     padding: 16px;
 }
+
+#tableInputDocuments .input-group {
+    margin: 8px 0;
+}

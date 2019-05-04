@@ -28,8 +28,8 @@ class Challenge(db.Model):
 class UserChallenge(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
-    user = db.Column(db.Integer, db.ForeignKey(User.id))
-    challenge = db.Column(db.Integer, db.ForeignKey(Challenge.id))
+    user = db.Column(db.Integer, db.ForeignKey(User.id, ondelete='CASCADE'))
+    challenge = db.Column(db.Integer, db.ForeignKey(Challenge.id, ondelete='CASCADE'))
     is_done = db.Column(db.Boolean, default=False)
 
     def __init__(self, user, challenge, is_done=False):
@@ -41,26 +41,31 @@ class UserChallenge(db.Model):
 class Question(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
-    challenge = db.Column(db.Integer, db.ForeignKey(Challenge.id))
+    challenge = db.Column(db.Integer, db.ForeignKey(Challenge.id, ondelete='CASCADE'))
     position = db.Column(db.Integer)
     wrong_documents = db.Column(db.Text)
     good_documents = db.Column(db.Text)
     hint = db.Column(db.Text, default='')
     hint_expr = db.Column(db.Text, default='')
 
-    def __init__(self, challenge, position, wrong_docs, good_docs, hint='', hint_expr=''):
+    def __init__(self, challenge, hint_expr, wrong_docs, good_docs, hint='', position=0):
         self.challenge = challenge
         self.position = position
-        self.wrong_documents = wrong_docs
-        self.good_documents = good_docs
+        self.wrong_documents = ';'.join(wrong_docs) if type(wrong_docs) is list else wrong_docs
+        self.good_documents = ';'.join(good_docs) if type(good_docs) is list else good_docs
         self.hint = hint
         self.hint_expr = hint_expr
+
+    def get_documents(self):
+        d = self.good_documents.split(';')
+        d.extend(self.wrong_documents.split(';'))
+        return d
 
 
 class Answer(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
-    challenge = db.Column(db.Integer, db.ForeignKey(Question.id))
+    question = db.Column(db.Integer, db.ForeignKey(Question.id, ondelete='CASCADE'))
     answer = db.Column(db.Text)
 
     def __init__(self, question, answer):

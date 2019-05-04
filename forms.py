@@ -4,7 +4,6 @@ import wtforms as f
 
 class LoginForm(FlaskForm):
     login = f.StringField("eID de l'UNamur", validators=[f.validators.InputRequired()])
-
     login_button = f.SubmitField('Login')
 
 
@@ -17,3 +16,10 @@ class UserForm(FlaskForm):
 class ChallengeForm(FlaskForm):
     name = f.StringField('Nom du challenge', validators=[f.validators.InputRequired()])
     add_button = f.SubmitField('Ajouter un nouveau challenge')
+
+
+class QuestionForm(FlaskForm):
+    hint_expr = f.StringField('Expression de recherche', validators=[f.validators.InputRequired()])
+    hint = f.TextAreaField('Aide')
+    documents = f.StringField('Documents')
+    add_button = f.SubmitField('Valider')

@@ -116,11 +116,12 @@ class TestFlask(TestCase):
 
 
 class TestAPI(TestFlask):
-    def test_check(self):
+    def test_checks(self):
 
-        def make_request(expr, doc):
+        def make_request(expr, doc, status=200):
             response = self.client.get(
-                '/api/check', data={'search_expression': expr, 'document': doc})
+                '/api/checks', data={'search_expression': expr, 'document': doc})
+            self.assertEqual(response.status_code, status)
             j = json.loads(response.get_data().decode())
             return j
 
@@ -132,7 +133,18 @@ class TestAPI(TestFlask):
         self.assertFalse(make_request('a', '')['matched'])
 
         # error behavior
-        self.assertIn('message', make_request('a b OR c', 'a'))  # OR in a AND expression
+        self.assertIn('message', make_request('a b OR c', 'a', status=400))  # OR in a AND expression
+
+    def test_checks_many(self):
+
+        def make_request(expr, docs, status=200):
+            response = self.client.get(
+                '/api/checks_many', data={'search_expression': expr, 'documents': docs})
+            self.assertEqual(response.status_code, status)
+            j = json.loads(response.get_data().decode())
+            return j
+
+        self.assertEqual(make_request('a OR b', ['a', 'b', 'c'])['matched'], [True, True, False])
 
 
 class TestViews(TestFlask):
@@ -271,16 +283,16 @@ class TestViews(TestFlask):
         self.assertFalse(last_challenge.is_public)
 
         # change challenge state
-        self.client.get(flask.url_for('admin-challenges-toggle', id=last_challenge.id))
+        self.client.get(flask.url_for('admin-challenge-toggle', id=last_challenge.id))
         last_challenge = Challenge.query.get(last_challenge.id)
         self.assertTrue(last_challenge.is_public)
 
-        self.client.get(flask.url_for('admin-challenges-toggle', id=last_challenge.id))
+        self.client.get(flask.url_for('admin-challenge-toggle', id=last_challenge.id))
         last_challenge = Challenge.query.get(last_challenge.id)
         self.assertFalse(last_challenge.is_public)
 
         # delete challenge
-        response = self.client.delete(flask.url_for('admin-challenges-delete', id=last_challenge.id))
+        response = self.client.delete(flask.url_for('admin-challenge-delete', id=last_challenge.id))
         self.assertEqual(response.status_code, 302)
         self.assertEqual(Challenge.query.count(), challenges_count)
 
@@ -302,11 +314,11 @@ class TestViews(TestFlask):
         self.assertEqual(response.status_code, 403)
         self.assertEqual(Challenge.query.count(), challenges_count + 1)  # cannot add
 
-        response = self.client.get(flask.url_for('admin-challenges-toggle', id=last_challenge.id))
+        response = self.client.get(flask.url_for('admin-challenge-toggle', id=last_challenge.id))
         self.assertEqual(response.status_code, 403)
         last_challenge = Challenge.query.get(last_challenge.id)
         self.assertFalse(last_challenge.is_public)  # cannot change state
 
-        response = self.client.delete(flask.url_for('admin-challenges-delete', id=last_challenge.id))
+        response = self.client.delete(flask.url_for('admin-challenge-delete', id=last_challenge.id))
         self.assertEqual(response.status_code, 403)
         self.assertEqual(Challenge.query.count(), challenges_count + 1)  # cannot delete

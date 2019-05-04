@@ -18,11 +18,33 @@ class CheckMatch(Resource):
     def get(self):
 
         args = self.parser.parse_args()
-        parser = logic.Parser(logic.Lexer(args.get('search_expression', '')))
 
         try:
-            expression = parser.search_expr()
+            expression = logic.parse(args.get('search_expression', ''))
         except logic.ParserException as e:
             return make_error({'position': e.token.position, 'error': e.message}, 'search_expression')
 
-        return {'matched': expression.match(args.get('document'))}
+        return {
+            'document': args.get('document'),
+            'matched': expression.match(args.get('document'))
+        }
+
+
+class CheckMatchMany(Resource):
+
+    def __init__(self):
+        self.parser = reqparse.RequestParser()
+
+        self.parser.add_argument('search_expression', type=str, required=True)
+        self.parser.add_argument('documents', required=True, action='append')
+
+    def get(self):
+
+        args = self.parser.parse_args()
+
+        try:
+            expression = logic.parse(args.get('search_expression', ''))
+        except logic.ParserException as e:
+            return make_error({'position': e.token.position, 'error': e.message}, 'search_expression')
+
+        return {'matched': [expression.match(d) for d in args.get('documents')]}
