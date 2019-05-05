@@ -9,6 +9,7 @@ Flask-RESTful = "*"
 Flask-SQLAlchemy = "*"
 Flask-WTF = "*"
 flask-bootstrap = "*"
+gunicorn = "*"
 
 [dev-packages]
 "flake8" = "*"
@@ -16,4 +17,4 @@ flask-bootstrap = "*"
 "autopep8" = "*"
 
 [requires]
-python_version = "3.6"
+python_version = "3.5"
