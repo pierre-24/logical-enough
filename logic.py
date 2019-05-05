@@ -167,9 +167,23 @@ class SearchTerm(AST):
     def __init__(self, term):
         super().__init__()
         self.term = term
+        self._spl = term.split(' ')
 
     def match(self, s):
-        return self.term in s
+        if ' ' in self.term:
+            index = -1
+            while True:
+                try:
+                    index = s.index(self._spl[0], index + 1 if index >= 0 else 0)
+                    if index > len(s) - len(self._spl):
+                        return False
+                    else:
+                        if all(self._spl[i] == s[index + i] for i in range(len(self._spl))):
+                            return True
+                except ValueError:
+                    return False
+        else:
+            return self.term in s
 
     def __str__(self):
         if ' ' in self.term:

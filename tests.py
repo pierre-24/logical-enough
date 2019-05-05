@@ -132,6 +132,8 @@ class TestAPI(TestFlask):
         self.assertFalse(make_request('', 'a')['matched'])
         self.assertFalse(make_request('a', '')['matched'])
 
+        self.assertTrue(make_request('"a b"', 'a b')['matched'])
+
         # error behavior
         self.assertIn('message', make_request('a b OR c', 'a', status=400))  # OR in a AND expression
 
