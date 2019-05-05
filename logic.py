@@ -1,3 +1,5 @@
+import string
+
 EOF = 'EOF'
 MINUS = '-'
 QUOTE = '"'
@@ -109,7 +111,8 @@ class SearchExpr(AST):
 
     def match(self, s):
         if self.expr is not None:
-            return self.expr.match(list(e.lower() for e in s.split(' ')))
+            return self.expr.match(
+                list(e.lower() for e in s.translate(str.maketrans('', '', string.punctuation)).split(' ')))
         else:
             return False
 
