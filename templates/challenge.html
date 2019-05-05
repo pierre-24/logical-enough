@@ -18,6 +18,8 @@
               </span>
             </div>
 
+            {% if question.hint != '' %}<p style="margin-top: 16px" class="well">{{ question.hint }}</p>{% endif %}
+
 
             <div class="alert alert-info" style="margin-top: 16px;display: none;" id="messageSucceed">
                 Bonne réponse ! Vous pouvez passer à <a href="{{ url_for('challenge', id=challenge.id) }}">la question suivante</a>.
