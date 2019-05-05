@@ -85,9 +85,9 @@ class TestFlask(TestCase):
 
         self.db_session.commit()
 
-        self.admin = User.query.filter(User.eid.is_('admin')).first()
+        self.admin = User.query.filter(User.name.is_('admin')).first()
         self.assertIsNotNone(self.admin)
-        self.user = User.query.filter(User.eid.is_('user')).first()
+        self.user = User.query.filter(User.name.is_('user')).first()
         self.assertIsNotNone(self.user)
 
         # create client
@@ -161,7 +161,7 @@ class TestAPI(TestFlask):
 
         # add a challenge and a question
         challenge_name = 'xxx'
-        self.assertTrue(self.login(self.admin.eid))
+        self.assertTrue(self.login(self.admin.name))
 
         response = self.client.post(flask.url_for('admin-challenges'), data={
             'name': challenge_name
@@ -274,7 +274,7 @@ class TestViews(TestFlask):
         """Test the behavior of the login and logout pages"""
 
         # good credentials:
-        self.assertTrue(self.login(self.user.eid))
+        self.assertTrue(self.login(self.user.name))
 
         with self.client.session_transaction() as session:
             self.assertIn(PageContextMixin.LOGIN_VAR, session)
@@ -287,10 +287,10 @@ class TestViews(TestFlask):
             self.assertNotIn(PageContextMixin.LOGIN_VAR, session)
 
         # wrong credentials:
-        self.assertFalse(self.login(self.user.eid + 'x'))
+        self.assertFalse(self.login(self.user.name + 'x'))
 
         # if already connected, get redirect
-        self.assertTrue(self.login(self.user.eid))
+        self.assertTrue(self.login(self.user.name))
 
         response = self.client.get(flask.url_for('login'))
         self.assertEqual(response.status_code, 302)
@@ -302,7 +302,7 @@ class TestViews(TestFlask):
 
         # check admin
         self.assertTrue(self.logout())
-        self.assertTrue(self.login(self.admin.eid))
+        self.assertTrue(self.login(self.admin.name))
 
         with self.client.session_transaction() as session:
             self.assertIn(PageContextMixin.LOGIN_VAR, session)
@@ -310,7 +310,7 @@ class TestViews(TestFlask):
             self.assertTrue(session['is_admin'])
 
     def test_admin_users_management(self):
-        self.assertTrue(self.login(self.admin.eid))
+        self.assertTrue(self.login(self.admin.name))
 
         # add normal user
         eid = 'xxx'
@@ -318,14 +318,14 @@ class TestViews(TestFlask):
         user_count = User.query.count()
 
         response = self.client.post(flask.url_for('admin-users'), data={
-            'eid': eid
+            'login': eid
         }, follow_redirects=False)
         self.assertEqual(response.status_code, 302)
 
         self.assertEqual(User.query.count(), user_count + 1)
 
         last_user = User.query.order_by(User.id.desc()).first()
-        self.assertEqual(last_user.eid, eid)
+        self.assertEqual(last_user.name, eid)
         self.assertFalse(last_user.is_admin)
 
         # delete user
@@ -335,7 +335,7 @@ class TestViews(TestFlask):
 
         # add admin
         response = self.client.post(flask.url_for('admin-users'), data={
-            'eid': eid,
+            'login': eid,
             'is_admin': True
         }, follow_redirects=False)
         self.assertEqual(response.status_code, 302)
@@ -343,7 +343,7 @@ class TestViews(TestFlask):
         self.assertEqual(User.query.count(), user_count + 1)
 
         last_user = User.query.order_by(User.id.desc()).first()
-        self.assertEqual(last_user.eid, eid)
+        self.assertEqual(last_user.name, eid)
         self.assertTrue(last_user.is_admin)
 
         # cannot delete admin
@@ -358,7 +358,7 @@ class TestViews(TestFlask):
 
         # cannot add twice the same person
         response = self.client.post(flask.url_for('admin-users'), data={
-            'eid': eid
+            'login': eid
         }, follow_redirects=False)
         self.assertEqual(response.status_code, 200)
 
@@ -366,12 +366,12 @@ class TestViews(TestFlask):
 
         # normal user cannot add user
         self.logout()
-        self.assertTrue(self.login(self.user.eid))
+        self.assertTrue(self.login(self.user.name))
 
         eid += 'x'
 
         response = self.client.post(flask.url_for('admin-users'), data={
-            'eid': eid,
+            'login': eid,
             'is_admin': True
         }, follow_redirects=False)
         self.assertEqual(response.status_code, 403)
@@ -385,7 +385,7 @@ class TestViews(TestFlask):
         self.assertEqual(User.query.count(), user_count + 1)
 
     def test_admin_challenges_management(self):
-        self.assertTrue(self.login(self.admin.eid))
+        self.assertTrue(self.login(self.admin.name))
 
         # add challenge
         name = 'xxx'
@@ -425,7 +425,7 @@ class TestViews(TestFlask):
 
         self.assertEqual(Challenge.query.count(), challenges_count + 1)  # add challenge
         self.logout()
-        self.assertTrue(self.login(self.user.eid))
+        self.assertTrue(self.login(self.user.name))
 
         name += 'x'
 
@@ -446,7 +446,7 @@ class TestViews(TestFlask):
 
     def test_admin_questions_management(self):
         challenge_name = 'xxx'
-        self.assertTrue(self.login(self.admin.eid))
+        self.assertTrue(self.login(self.admin.name))
 
         response = self.client.post(flask.url_for('admin-challenges'), data={
             'name': challenge_name
@@ -575,7 +575,7 @@ class TestViews(TestFlask):
         self.assertEqual(Question.query.count(), question_count + 1)
 
         self.assertTrue(self.logout())
-        self.assertTrue(self.login(self.user.eid))
+        self.assertTrue(self.login(self.user.name))
 
         # user cannot add question
         response = self.client.post(flask.url_for('admin-question-create', id=challenge.id), data={

@@ -26,7 +26,7 @@
             <tbody>
                 {% for p in users %}
                     <tr style="{% if p.is_admin %}background-color: #ffd{% endif %}">
-                        <td><span>{{ p.eid }}</span> </td>
+                        <td><span>{{ p.name }}</span> </td>
                         <td>
                             {% if not p.is_admin %}
                                 {{ m.gen_delete_dialog(p.id, p.eid, url_for('admin-users-delete', id=p.id), 'User') }}

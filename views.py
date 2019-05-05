@@ -163,7 +163,7 @@ class PageContextMixin:
 
     @staticmethod
     def login_user(eid):
-        user = User.query.filter(User.eid.is_(eid)).first()
+        user = User.query.filter(User.name.is_(eid)).first()
 
         if user is None:
             flask.flash("Tu n'existes pas, va t'en !", 'error')
@@ -312,11 +312,11 @@ class AdminUsersPage(PageContextMixin, FormView):
 
     def form_valid(self, form):
 
-        if User.query.filter(User.eid.is_(form.eid.data)).count() > 0:
+        if User.query.filter(User.name.is_(form.login.data)).count() > 0:
             flask.flash("Impossible d'ajouter 2 fois la même personne", 'error')
             return super().form_invalid(form)
 
-        user = User(form.eid.data, is_admin=form.is_admin.data)
+        user = User(form.login.data, is_admin=form.is_admin.data)
         commons.db.session.add(user)
         commons.db.session.commit()
 
