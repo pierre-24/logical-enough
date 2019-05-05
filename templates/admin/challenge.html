@@ -25,6 +25,8 @@
                         <td>
                             {{ m.gen_delete_dialog(p.id, p.hint_expr, url_for('admin-question-delete', id=p.id, challenge_id=p.challenge), 'Question') }}
                             <a href="#deleteQuestion{{ p.id }}" data-toggle="modal">Supprimer</a>
+                            &bull;
+                            <a href="{{ url_for('admin-answers', id=p.id, challenge_id=p.challenge) }}">Voir les réponses</a>
                         </td>
                     </tr>
                 {% endfor %}

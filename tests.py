@@ -10,7 +10,7 @@ import logic
 import app
 import settings
 from commons import db
-from models import User, Challenge, Question, UserChallenge
+from models import User, Challenge, Question, UserChallenge, Answer
 from views import PageContextMixin
 
 
@@ -215,6 +215,8 @@ class TestAPI(TestFlask):
         self.assertFalse(user_challenge.is_done)
 
         # wrong answer to first question
+        answer_count = Answer.query.count()
+
         test_expr = logic.parse('a')
         j = make_request(str(test_expr), self.admin.id, challenge.id, question_1.id)
         self.assertFalse(j['question_end'])
@@ -243,6 +245,10 @@ class TestAPI(TestFlask):
         self.assertFalse(user_challenge.is_done)
         self.assertEqual(user_challenge.current_question, question_2.id)
 
+        self.assertEqual(Answer.query.count(), answer_count + 1)
+        last_answer = Answer.query.order_by(Answer.id.desc()).first()
+        self.assertEqual(last_answer.answer, str(search_expression_1))
+
         # if we try the same question, we get error
         make_request(str(search_expression_1), self.admin.id, challenge.id, question_1.id, status=400)
 
@@ -253,6 +259,10 @@ class TestAPI(TestFlask):
 
         user_challenge = UserChallenge.query.get(user_challenge.id)
         self.assertTrue(user_challenge.is_done)  # ok, we're good
+
+        self.assertEqual(Answer.query.count(), answer_count + 2)
+        last_answer = Answer.query.order_by(Answer.id.desc()).first()
+        self.assertEqual(last_answer.answer, str(search_expression_2))
 
         # if we try the same question, we get error (challenge is done!)
         make_request(str(search_expression_2), self.admin.id, challenge.id, question_2.id, status=400)

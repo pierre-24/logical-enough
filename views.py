@@ -3,7 +3,7 @@ import functools
 import flask
 from flask.views import MethodView
 
-from models import User, Challenge, Question, UserChallenge
+from models import User, Challenge, Question, UserChallenge, Answer
 from forms import LoginForm, UserForm, ChallengeForm, QuestionForm
 import commons
 import logic
@@ -546,3 +546,34 @@ class AdminQuestionDelete(DeleteView):
     def delete(self, *args, **kwargs):
         flask.flash('Question supprimée', 'success')
         return super().delete(*args, **kwargs)
+
+
+class AdminViewAnswerPage(PageContextMixin, GetObjectMixin, RenderTemplateView):
+
+    decorators = [PageContextMixin.login_required, PageContextMixin.admin_required]
+    model = Question
+    context_object_name = 'question'
+    template_name = 'admin/answers.html'
+    form_class = QuestionForm
+
+    challenge = None
+
+    def get_object(self, *args, **kwargs):
+        obj = super().get_object(*args, **kwargs)
+
+        if obj.challenge != kwargs.get('challenge_id', -1):
+            flask.abort(404)
+
+        self.challenge = Challenge.query.filter(Challenge.id.is_(obj.challenge)).first()
+        if self.challenge is None:
+            flask.abort(404)
+
+        return obj
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+        context['challenge'] = self.challenge
+        context['answers'] = Answer.query.filter(Answer.question.is_(self.object.id)).all()
+        context['users'] = dict((u.id, u) for u in User.query.all())
+
+        return context

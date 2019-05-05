@@ -80,7 +80,9 @@ class Answer(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     question = db.Column(db.Integer, db.ForeignKey(Question.id, ondelete='CASCADE'))
     answer = db.Column(db.Text)
+    user = db.Column(db.Integer, db.ForeignKey(User.id, ondelete='CASCADE'))
 
-    def __init__(self, question, answer):
+    def __init__(self, user, question, answer):
+        self.user = user
         self.question = question
         self.answer = answer

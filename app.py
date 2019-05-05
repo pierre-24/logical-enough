@@ -81,6 +81,10 @@ app.add_url_rule(
     '/admin/challenge-<int:challenge_id>/question-<int:id>-del.html',
     view_func=views.AdminQuestionDelete.as_view('admin-question-delete'),
     endpoint='admin-question-delete')
+app.add_url_rule(
+    '/admin/challenge-<int:challenge_id>/question-<int:id>/reponses.html',
+    view_func=views.AdminViewAnswerPage.as_view('admin-answers'),
+    endpoint='admin-answers')
 
 
 # API

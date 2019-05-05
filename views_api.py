@@ -113,7 +113,7 @@ class CheckQuestion(Resource):
                 user_challenge.current_question = questions[index + 1].id
 
             commons.db.session.add(user_challenge)
-            commons.db.session.add(Answer(question.id, args.get('search_expression')))
+            commons.db.session.add(Answer(args.get('user'), question.id, args.get('search_expression')))
             commons.db.session.commit()
 
         return {
