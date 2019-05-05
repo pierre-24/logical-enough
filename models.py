@@ -48,18 +48,26 @@ class Question(db.Model):
     hint = db.Column(db.Text, default='')
     hint_expr = db.Column(db.Text, default='')
 
+    SEP = ';'
+
     def __init__(self, challenge, hint_expr, wrong_docs, good_docs, hint='', position=0):
         self.challenge = challenge
         self.position = position
-        self.wrong_documents = ';'.join(wrong_docs) if type(wrong_docs) is list else wrong_docs
-        self.good_documents = ';'.join(good_docs) if type(good_docs) is list else good_docs
+        self.wrong_documents = Question.SEP.join(wrong_docs) if type(wrong_docs) is list else wrong_docs
+        self.good_documents = Question.SEP.join(good_docs) if type(good_docs) is list else good_docs
         self.hint = hint
         self.hint_expr = hint_expr
 
     def get_documents(self):
-        d = self.good_documents.split(';')
-        d.extend(self.wrong_documents.split(';'))
+        d = self.get_good_documents()
+        d.extend(self.get_wrong_documents())
         return d
+
+    def get_good_documents(self):
+        return self.good_documents.split(Question.SEP)
+
+    def get_wrong_documents(self):
+        return self.wrong_documents.split(Question.SEP)
 
 
 class Answer(db.Model):

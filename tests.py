@@ -10,7 +10,7 @@ import logic
 import app
 import settings
 from commons import db
-from models import User, Challenge
+from models import User, Challenge, Question
 from views import PageContextMixin
 
 
@@ -322,3 +322,167 @@ class TestViews(TestFlask):
         response = self.client.delete(flask.url_for('admin-challenge-delete', id=last_challenge.id))
         self.assertEqual(response.status_code, 403)
         self.assertEqual(Challenge.query.count(), challenges_count + 1)  # cannot delete
+
+    def test_admin_questions_management(self):
+        challenge_name = 'xxx'
+        self.assertTrue(self.login(self.admin.eid))
+
+        response = self.client.post(flask.url_for('admin-challenges'), data={
+            'name': challenge_name
+        }, follow_redirects=False)
+        self.assertEqual(response.status_code, 302)
+
+        challenge = Challenge.query.order_by(Challenge.id.desc()).first()
+
+        # add question
+        question_count = Question.query.count()
+
+        search_expression = logic.parse('a OR b')
+        documents = ['a', 'b', 'c']
+
+        hint = 'yyyy'
+
+        response = self.client.post(flask.url_for('admin-question-create', id=challenge.id), data={
+            'hint_expr': str(search_expression),
+            'hint': hint,
+            'documents': ';'.join(documents)
+        }, follow_redirects=False)
+        self.assertEqual(response.status_code, 302)
+
+        self.assertEqual(Question.query.count(), question_count + 1)
+
+        last_question = Question.query.order_by(Question.id.desc()).first()
+        self.assertEqual(last_question.hint_expr, str(search_expression))
+        self.assertEqual(last_question.hint, hint)
+
+        good_docs = last_question.get_good_documents()
+        wrong_docs = last_question.get_wrong_documents()
+
+        for d in documents:
+            if search_expression.match(d):
+                self.assertIn(d, good_docs)
+            else:
+                self.assertIn(d, wrong_docs)
+
+        # modify question: add documents
+        documents.append('d')
+
+        response = self.client.post(
+            flask.url_for('admin-question', id=last_question.id, challenge_id=challenge.id),
+            data={
+                'hint_expr': str(search_expression),
+                'hint': hint + 'x',
+                'documents': ';'.join(documents)
+            },
+            follow_redirects=False)
+        self.assertEqual(response.status_code, 302)
+
+        last_question = Question.query.get(last_question.id)
+        self.assertEqual(last_question.hint_expr, str(search_expression))
+        self.assertEqual(last_question.hint, hint + 'x')
+
+        good_docs = last_question.get_good_documents()
+        wrong_docs = last_question.get_wrong_documents()
+
+        for d in documents:
+            if search_expression.match(d):
+                self.assertIn(d, good_docs)
+            else:
+                self.assertIn(d, wrong_docs)
+
+        # modify question: change search expr
+        search_expression = logic.parse('a OR -b')
+
+        response = self.client.post(
+            flask.url_for('admin-question', id=last_question.id, challenge_id=challenge.id),
+            data={
+                'hint_expr': str(search_expression),
+                'hint': hint,
+                'documents': ';'.join(documents)
+            },
+            follow_redirects=False)
+        self.assertEqual(response.status_code, 302)
+
+        last_question = Question.query.get(last_question.id)
+        self.assertEqual(last_question.hint_expr, str(search_expression))
+        self.assertEqual(last_question.hint, hint)
+
+        good_docs = last_question.get_good_documents()
+        wrong_docs = last_question.get_wrong_documents()
+
+        for d in documents:
+            if search_expression.match(d):
+                self.assertIn(d, good_docs)
+            else:
+                self.assertIn(d, wrong_docs)
+
+        # delete question
+        response = self.client.post(
+            flask.url_for('admin-question-delete', id=last_question.id, challenge_id=challenge.id),
+            follow_redirects=False)
+        self.assertEqual(response.status_code, 302)
+
+        self.assertEqual(Question.query.count(), question_count)
+
+        # delete challenge also delete question(s)
+        response = self.client.post(flask.url_for('admin-question-create', id=challenge.id), data={
+            'hint_expr': str(search_expression),
+            'hint': hint,
+            'documents': ';'.join(documents)
+        }, follow_redirects=False)  # re add a question
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(Question.query.count(), question_count + 1)
+
+        response = self.client.delete(flask.url_for('admin-challenge-delete', id=challenge.id))
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(Question.query.count(), question_count)
+
+        # user can't!
+        response = self.client.post(flask.url_for('admin-challenges'), data={
+            'name': challenge_name
+        }, follow_redirects=False)
+        self.assertEqual(response.status_code, 302)  # re-add challenge
+
+        challenge = Challenge.query.order_by(Challenge.id.desc()).first()
+
+        response = self.client.post(flask.url_for('admin-question-create', id=challenge.id), data={
+            'hint_expr': str(search_expression),
+            'hint': hint,
+            'documents': ';'.join(documents)
+        }, follow_redirects=False)  # re add a question
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(Question.query.count(), question_count + 1)
+
+        self.assertTrue(self.logout())
+        self.assertTrue(self.login(self.user.eid))
+
+        # user cannot add question
+        response = self.client.post(flask.url_for('admin-question-create', id=challenge.id), data={
+            'hint_expr': 'a',
+            'hint': hint,
+            'documents': ';'.join(documents)
+        }, follow_redirects=False)
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(Question.query.count(), question_count + 1)
+
+        # user cannot modify question
+        response = self.client.post(
+            flask.url_for('admin-question', id=last_question.id, challenge_id=challenge.id),
+            data={
+                'hint_expr': 'a',
+                'hint': hint,
+                'documents': ';'.join(documents)
+            },
+            follow_redirects=False)
+        self.assertEqual(response.status_code, 403)
+
+        last_question = Question.query.get(last_question.id)
+        self.assertEqual(last_question.hint_expr, str(search_expression))
+
+        # user cannot delete question
+        response = self.client.post(
+            flask.url_for('admin-question-delete', id=last_question.id, challenge_id=challenge.id),
+            follow_redirects=False)
+        self.assertEqual(response.status_code, 403)
+
+        self.assertEqual(Question.query.count(), question_count + 1)
