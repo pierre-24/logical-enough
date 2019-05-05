@@ -109,7 +109,7 @@ class SearchExpr(AST):
 
     def match(self, s):
         if self.expr is not None:
-            return self.expr.match(s)
+            return self.expr.match(list(e.lower() for e in s.split(' ')))
         else:
             return False
 
