@@ -3,13 +3,26 @@
 
 {% block title %}Login page{% endblock %}
 
-{% block page_content %}
-    <div class="container">
-        {% if form_error %}
-            <div class="alert alert-danger">
-                {{ form_error }}
-            </div>
-        {% endif %}
-        {{ wtf.quick_form(form, action=url_for('login', next=next)) }}
+{% block navbar %}
+{% endblock %}
+
+{% block content %}
+    <div id="wrapper">
+        <div class="container" style="text-align: center; padding: 64px;">
+            <img src="{{ url_for('static', filename='logo.svg') }}" alt="logo">
+        </div>
+
+
+        {{ utils.flashed_messages() }}
+        <div class="jumbotron">
+        <div class="container">
+            {% if form_error %}
+                <div class="alert alert-danger">
+                    {{ form_error }}
+                </div>
+            {% endif %}
+            {{ wtf.quick_form(form, action=url_for('login', next=next)) }}
+        </div>
+        </div>
     </div>
 {% endblock %}

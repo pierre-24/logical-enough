@@ -554,7 +554,6 @@ class AdminViewAnswerPage(PageContextMixin, GetObjectMixin, RenderTemplateView):
     model = Question
     context_object_name = 'question'
     template_name = 'admin/answers.html'
-    form_class = QuestionForm
 
     challenge = None
 
