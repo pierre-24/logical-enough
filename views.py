@@ -3,7 +3,7 @@ import functools
 import flask
 from flask.views import MethodView
 
-from models import User, Challenge, Question
+from models import User, Challenge, Question, UserChallenge
 from forms import LoginForm, UserForm, ChallengeForm, QuestionForm
 import commons
 import logic
@@ -202,11 +202,6 @@ def logout():
     return flask.redirect(flask.url_for('login'))
 
 
-class IndexPage(PageContextMixin, RenderTemplateView):
-    template_name = 'index.html'
-    decorators = [PageContextMixin.login_required]
-
-
 class LoginPage(FormView):
     form_class = LoginForm
     template_name = 'login.html'
@@ -242,6 +237,65 @@ class LoginPage(FormView):
 
         else:
             return self.form_invalid(form)
+
+
+class IndexPage(PageContextMixin, RenderTemplateView):
+    template_name = 'index.html'
+    decorators = [PageContextMixin.login_required]
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+
+        context['challenges'] = Challenge.query.filter(Challenge.is_public.is_(True)).all()
+        context['user_challenges'] = dict(
+            (c.challenge, c) for c in UserChallenge.query.filter(UserChallenge.user.is_(self.get_user().id)).all())
+        return context
+
+
+class ChallengePage(PageContextMixin, GetObjectMixin, RenderTemplateView):
+
+    decorators = [PageContextMixin.login_required]
+    template_name = 'challenge.html'
+    model = Challenge
+    context_object_name = 'challenge'
+
+    current_question = None
+    challenge_done = False
+
+    def get_object(self, *args, **kwargs):
+        obj = super().get_object(*args, **kwargs)
+        if not obj.is_public:
+            flask.abort(404)
+
+        user_challenge = UserChallenge.query\
+            .filter(UserChallenge.user.is_(self.get_user().id))\
+            .filter(UserChallenge.challenge.is_(obj.id))\
+            .first()
+
+        if user_challenge is None:  # never did the challenge, starts it
+            self.current_question = Question.query.filter(Question.challenge.is_(obj.id)).first()
+            user_challenge = UserChallenge(self.get_user().id, obj.id, self.current_question.id)
+            commons.db.session.add(user_challenge)
+            commons.db.session.commit()
+        else:
+            self.challenge_done = user_challenge.is_done
+            if not self.challenge_done:
+                self.current_question = Question.query.get(user_challenge.current_question)
+
+        return obj
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+        context['question'] = self.current_question
+        context['challenge_done'] = self.challenge_done
+
+        questions = self.object.get_questions()
+        if self.challenge_done:
+            context['progression'] = (len(questions), len(questions))
+        else:
+            context['progression'] = ([q.id for q in questions].index(self.current_question.id) + 1, len(questions))
+
+        return context
 
 
 # ADMIN

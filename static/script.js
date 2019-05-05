@@ -151,3 +151,68 @@ function documents_management_change_expr(input) {
 
     });
 }
+
+/* challenge stuffs */
+function challenge_setup(user, challenge, question) {
+    let $search_expr = $('#search_expr');
+    let $button = $('#search_button');
+
+    $button.click(function () {
+        challenge_test($search_expr, user, challenge, question);
+    });
+
+    // first time
+    challenge_test($search_expr, user, challenge, question);
+}
+
+function challenge_test(input, user, challenge, question) {
+    let $button = $('#search_button');
+    $button.prop('disabled', true);
+
+    $.ajax({
+        url: '/api/check_question',
+        method: 'POST',
+        data: {
+            search_expression: input.val(),
+            user: user,
+            challenge: challenge,
+            question: question
+        },
+        success: function (result) {
+            challenge_treat_result(result, challenge);
+        },
+        error: function (xhr, status, error) {
+            console.log(error);
+        }
+    });
+
+    $button.prop('disabled', false);
+}
+
+function challenge_treat_result(result) {
+    let $goodDocs = $('#goodDocs');
+    let $wrongDocs = $('#wrongDocs');
+
+    $goodDocs.html('');
+    $wrongDocs.html('');
+
+    let gd = result['good_documents'];
+    let wd = result['wrong_documents'];
+
+    gd.forEach(function (a) {
+         $goodDocs.append('<span class="doc-result doc-'+ a[1] +'">'+ a[0] +'</span>')
+    });
+
+    wd.forEach(function (a) {
+         $wrongDocs.append('<span class="doc-result doc-'+ a[1] +'">'+ a[0] +'</span>')
+    });
+
+    if(result['question_end']) {
+        $('#search_button').click(function () {
+            console.log('we\'re good')
+        });
+
+        $('#search_expr').prop('disabled', true);
+        $('#messageSucceed').css('display', 'block')
+    }
+}

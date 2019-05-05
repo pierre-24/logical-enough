@@ -8,21 +8,21 @@
 
 {% block navbar %}
     <nav role="navigation"  class="navbar navbar-default navbar-static-top-top">
-    <div class="container">
-     <div class="navbar-header">
-            <a href="{{ url_for('index') }}" class="navbar-brand">Logical Enough!</a>
-        </div>
+        <div class="container">
+            <div class="navbar-header">
+                <a href="{{ url_for('index') }}" class="navbar-brand">Logical enough!</a>
+            </div>
 
-    <ul class="nav navbar-nav navbar-right">
-        {%  if user %}
-            <li><a href="{{ url_for('logout') }}">Se déconnecter</a></li>
-            {% if user.is_admin %}
-                <li><a href="{{ url_for('admin-users') }}">Utilisateurs</a></li>
-                <li><a href="{{ url_for('admin-challenges') }}">Challenges</a></li>
-            {% endif %}
-        {% endif %}
-    </ul>
-    </div>
+            <ul class="nav navbar-nav navbar-right">
+                {%  if user %}
+                    <li><a href="{{ url_for('logout') }}">Se déconnecter</a></li>
+                    {% if user.is_admin %}
+                        <li><a href="{{ url_for('admin-users') }}">Utilisateurs</a></li>
+                        <li><a href="{{ url_for('admin-challenges') }}">Challenges</a></li>
+                    {% endif %}
+                {% endif %}
+            </ul>
+        </div>
     </nav>
 {% endblock %}
 

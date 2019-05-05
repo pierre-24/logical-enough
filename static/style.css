@@ -32,3 +32,24 @@ footer {
 #tableInputDocuments .input-group {
     margin: 8px 0;
 }
+
+#tableDocuments {
+    margin-top: 32px;
+}
+
+#tableDocuments .doc-result {
+    display: inline-flex;
+    border: 2px solid #ddd;
+    padding: 4px;
+    margin: 4px;
+}
+
+#tableDocuments .doc-true {
+    border-color: #afa;
+    background-color: #dfd;
+}
+
+#tableDocuments .doc-false {
+    border-color: #faa;
+    background-color: #fdd;
+}

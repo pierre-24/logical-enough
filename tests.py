@@ -10,7 +10,7 @@ import logic
 import app
 import settings
 from commons import db
-from models import User, Challenge, Question
+from models import User, Challenge, Question, UserChallenge
 from views import PageContextMixin
 
 
@@ -145,6 +145,117 @@ class TestAPI(TestFlask):
             return j
 
         self.assertEqual(make_request('a OR b', ['a', 'b', 'c'])['matched'], [True, True, False])
+
+    def test_check_question(self):
+
+        def make_request(search_expr, user_id, challenge_id, question_id, status=200):
+            response = self.client.post('/api/check_question', data={
+                'search_expression': search_expr,
+                'user': user_id,
+                'challenge': challenge_id,
+                'question': question_id
+            })
+
+            self.assertEqual(response.status_code, status)
+            return json.loads(response.get_data().decode())
+
+        # add a challenge and a question
+        challenge_name = 'xxx'
+        self.assertTrue(self.login(self.admin.eid))
+
+        response = self.client.post(flask.url_for('admin-challenges'), data={
+            'name': challenge_name
+        }, follow_redirects=False)
+        self.assertEqual(response.status_code, 302)
+
+        challenge = Challenge.query.order_by(Challenge.id.desc()).first()
+
+        # add 2 question
+        question_count = Question.query.count()
+        documents = ['a', 'b', 'c']
+
+        search_expression_1 = logic.parse('a OR b')
+        response = self.client.post(flask.url_for('admin-question-create', id=challenge.id), data={
+            'hint_expr': str(search_expression_1),
+            'hint': '',
+            'documents': ';'.join(documents)
+        }, follow_redirects=False)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(Question.query.count(), question_count + 1)
+        question_1 = Question.query.order_by(Question.id.desc()).first()
+
+        search_expression_2 = logic.parse('a OR -b')
+        response = self.client.post(flask.url_for('admin-question-create', id=challenge.id), data={
+            'hint_expr': str(search_expression_2),
+            'hint': '',
+            'documents': ';'.join(documents)
+        }, follow_redirects=False)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(Question.query.count(), question_count + 2)
+        question_2 = Question.query.order_by(Question.id.desc()).first()
+
+        # start to play
+        user_challenge_count = UserChallenge.query.count()
+        response = self.client.get(flask.url_for('challenge', id=challenge.id))
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(UserChallenge.query.count(), user_challenge_count)  # cannot play if challenge is not public
+
+        self.client.get(flask.url_for('admin-challenge-toggle', id=challenge.id))
+
+        user_challenge_count = UserChallenge.query.count()
+        response = self.client.get(flask.url_for('challenge', id=challenge.id))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(UserChallenge.query.count(), user_challenge_count + 1)
+
+        user_challenge = UserChallenge.query.order_by(UserChallenge.id.desc()).first()
+
+        self.assertEqual(user_challenge.user, self.admin.id)
+        self.assertEqual(user_challenge.challenge, challenge.id)
+        self.assertEqual(user_challenge.current_question, question_1.id)
+        self.assertFalse(user_challenge.is_done)
+
+        # wrong answer to first question
+        test_expr = logic.parse('a')
+        j = make_request(str(test_expr), self.admin.id, challenge.id, question_1.id)
+        self.assertFalse(j['question_end'])
+        self.assertFalse(j['challenge_end'])
+
+        for d, is_good in j['good_documents']:
+            if is_good:
+                self.assertIn(d, question_1.get_good_documents())
+            else:
+                self.assertIn(d, question_1.get_wrong_documents())
+            self.assertTrue(test_expr.match(d))
+
+        for d, is_good in j['wrong_documents']:
+            if is_good:
+                self.assertIn(d, question_1.get_good_documents())
+            else:
+                self.assertIn(d, question_1.get_wrong_documents())
+            self.assertFalse(test_expr.match(d), msg=d)
+
+        # good answer to first question
+        j = make_request(str(search_expression_1), self.admin.id, challenge.id, question_1.id)
+        self.assertTrue(j['question_end'])
+        self.assertFalse(j['challenge_end'])
+
+        user_challenge = UserChallenge.query.get(user_challenge.id)
+        self.assertFalse(user_challenge.is_done)
+        self.assertEqual(user_challenge.current_question, question_2.id)
+
+        # if we try the same question, we get error
+        make_request(str(search_expression_1), self.admin.id, challenge.id, question_1.id, status=400)
+
+        # good answer to second question
+        j = make_request(str(search_expression_2), self.admin.id, challenge.id, question_2.id)
+        self.assertTrue(j['question_end'])
+        self.assertTrue(j['challenge_end'])
+
+        user_challenge = UserChallenge.query.get(user_challenge.id)
+        self.assertTrue(user_challenge.is_done)  # ok, we're good
+
+        # if we try the same question, we get error (challenge is done!)
+        make_request(str(search_expression_2), self.admin.id, challenge.id, question_2.id, status=400)
 
 
 class TestViews(TestFlask):

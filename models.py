@@ -24,18 +24,8 @@ class Challenge(db.Model):
         self.name = name
         self.is_public = is_public
 
-
-class UserChallenge(db.Model):
-
-    id = db.Column(db.Integer, primary_key=True)
-    user = db.Column(db.Integer, db.ForeignKey(User.id, ondelete='CASCADE'))
-    challenge = db.Column(db.Integer, db.ForeignKey(Challenge.id, ondelete='CASCADE'))
-    is_done = db.Column(db.Boolean, default=False)
-
-    def __init__(self, user, challenge, is_done=False):
-        self.user = user
-        self.challenge = challenge
-        self.is_done = is_done
+    def get_questions(self):
+        return Question.query.filter(Question.challenge.is_(self.id)).all()
 
 
 class Question(db.Model):
@@ -68,6 +58,21 @@ class Question(db.Model):
 
     def get_wrong_documents(self):
         return self.wrong_documents.split(Question.SEP)
+
+
+class UserChallenge(db.Model):
+
+    id = db.Column(db.Integer, primary_key=True)
+    user = db.Column(db.Integer, db.ForeignKey(User.id, ondelete='CASCADE'))
+    challenge = db.Column(db.Integer, db.ForeignKey(Challenge.id, ondelete='CASCADE'))
+    is_done = db.Column(db.Boolean, default=False)
+    current_question = db.Column(db.Integer, db.ForeignKey(Question.id, ondelete='CASCADE'), nullable=True)
+
+    def __init__(self, user, challenge, current_question, is_done=False):
+        self.user = user
+        self.challenge = challenge
+        self.is_done = is_done
+        self.current_question = current_question
 
 
 class Answer(db.Model):

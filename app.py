@@ -42,6 +42,8 @@ app.add_url_rule('/', view_func=views.IndexPage.as_view('index'), endpoint='inde
 app.add_url_rule('/login.html', view_func=views.LoginPage.as_view('login'), endpoint='login')
 app.add_url_rule('/logout.html', view_func=views.logout, endpoint='logout')
 
+app.add_url_rule('/challenge-<int:id>.html', view_func=views.ChallengePage.as_view('challenge'), endpoint='challenge')
+
 app.add_url_rule(
     '/admin/utilisateurs.html', view_func=views.AdminUsersPage.as_view('admin-users'), endpoint='admin-users')
 app.add_url_rule(
@@ -84,6 +86,7 @@ app.add_url_rule(
 # API
 api.add_resource(views_api.CheckMatch, '/api/checks')
 api.add_resource(views_api.CheckMatchMany, '/api/checks_many')
+api.add_resource(views_api.CheckQuestion, '/api/check_question')
 
 
 if __name__ == '__main__':
