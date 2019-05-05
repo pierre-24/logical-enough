@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}Logical enough{% endblock %}
+
+{% block page_content %}
+    <div class="container">
+        <h1>Challenges</h1>
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Nom du challenge</th>
+                    <th>État</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in challenges %}
+                    <tr>
+                        <td><a href="{{ url_for('challenge', id=p.id) }}">{{ p.name }}</a></td>
+                        <td>
+                            {% if p.id in user_challenges %}
+                                {% if user_challenges[p.id].is_done %}
+                                    Terminé
+                                    {% else %}
+                                    Commencé
+                                    {% endif %}
+                            {% else %}
+                                Pas commencé
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}

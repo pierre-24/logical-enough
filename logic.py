@@ -21,7 +21,6 @@ WORD = 'WORD'
 
 
 # Token
-
 class Token:
     """Token class"""
     def __init__(self, type_, value, position=-1):
@@ -35,7 +34,6 @@ class Token:
 
 
 # Lexer
-
 class Lexer:
     def __init__(self, input_):
         self.input = input_
@@ -102,17 +100,24 @@ class AST:
 
 
 class SearchExpr(AST):
-    def __init__(self, expr):
+    def __init__(self, expr=None):
         super().__init__()
 
         self.expr = expr
-        expr.parent = self
+        if expr is not None:
+            expr.parent = self
 
     def match(self, s):
-        return self.expr.match(s)
+        if self.expr is not None:
+            return self.expr.match(list(e.lower() for e in s.split(' ')))
+        else:
+            return False
 
     def __str__(self):
-        return str(self.expr)
+        if self.expr is not None:
+            return str(self.expr)
+        else:
+            return ''
 
 
 class AndExprs(AST):
@@ -306,3 +311,7 @@ class Parser:
         self.eat(EOF)
 
         return SearchExpr(node)
+
+
+def parse(expr):
+    return Parser(Lexer(expr)).search_expr()

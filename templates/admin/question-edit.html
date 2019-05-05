@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% import 'bootstrap/wtf.html' as wtf %}
+{% import 'macros.inc.html' as m %}
+
+{% block title %}Challenge :: {{ challenge.name }} :: éditer une question{% endblock %}
+
+{% block page_content %}
+    <div class="container">
+        {% if form_error %}
+            <div class="alert alert-danger">
+                {{ form_error }}
+            </div>
+        {% endif %}
+        <h1>
+            Édition d'une question pour le challenge
+            <a href="{{ url_for('admin-challenge', id=challenge.id) }}">{{ challenge.name }}</a>
+        </h1>
+        {{ wtf.quick_form(form, action=url_for('admin-question', id=question.id, challenge_id=question.challenge)) }}
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script>
+        documents_management_setup();
+    </script>
+{% endblock %}

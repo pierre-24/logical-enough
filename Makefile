@@ -11,6 +11,9 @@ help:
 init:
 	pipenv install --dev --ignore-pipfile
 
+init-db:
+	export FLASK_APP=app.py; flask init
+
 sync:
 	pipenv sync --dev
 

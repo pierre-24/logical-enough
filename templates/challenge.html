@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}Challenge {{ challenge.name }}{% endblock %}
+
+{% block page_content %}
+    <div class="container">
+        <h1>Challenge {{ challenge.name }}{% if not challenge_done %}: question {{ progression[0] }}/{{ progression[1] }}{% endif %}</h1>
+
+        {% if challenge_done %}
+            <div class="alert alert-info">
+                Félicitation, vous avez terminé ce challenge ! Vous pouvez <a href="{{ url_for('index') }}">en faire un autre</a> si vous le souhaitez.
+            </div>
+        {% else %}
+            <div class="input-group">
+              <input type="text" class="form-control" placeholder="Termes de votre recherche" id="search_expr">
+              <span class="input-group-btn">
+                <button class="btn btn-default" type="button" id="search_button">Tester</button>
+              </span>
+            </div>
+
+            {% if question.hint != '' %}<p style="margin-top: 16px" class="well">{{ question.hint }}</p>{% endif %}
+
+
+            <div class="alert alert-info" style="margin-top: 16px;display: none;" id="messageSucceed">
+                Bonne réponse ! Vous pouvez passer à <a href="{{ url_for('challenge', id=challenge.id) }}">la question suivante</a>.
+            </div>
+
+            <div id="tableDocuments">
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th width="50%">Résultat de la requête</th>
+                            <th width="50%">Documents ignorés par la requête</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td id="goodDocs"></td><td id="wrongDocs"></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+
+    </div>
+
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script>
+        challenge_setup({{ user.id }}, {{ challenge.id }}, {{ question.id }});
+    </script>
+{% endblock %}

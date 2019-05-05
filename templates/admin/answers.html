@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% import 'bootstrap/wtf.html' as wtf %}
+{% import 'macros.inc.html' as m %}
+
+{% block title %}Challenge :: {{ challenge.name }} :: voir réponse{% endblock %}
+
+{% block page_content %}
+
+    <div class="container">
+        <h1>
+            Voir les réponses d'une question du challenge
+            <a href="{{ url_for('admin-challenge', id=challenge.id) }}">{{ challenge.name }}</a>
+        </h1>
+
+        <div class="well">
+            {{ question.hint_expr }}
+        </div>
+
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Utilisateur</th>
+                    <th>Réponse</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in answers %}
+                    <tr>
+                        <td>{{ users[p.user].eid }}</td>
+                        <td>{{ p.answer }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}

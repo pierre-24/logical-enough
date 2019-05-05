@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% import 'bootstrap/wtf.html' as wtf %}
+{% import 'macros.inc.html' as m %}
+
+{% block title %}Utilisateurs{% endblock %}
+
+{% block page_content %}
+    <div class="container container-form">
+        {% if form_error %}
+            <div class="alert alert-danger">
+                {{ form_error }}
+            </div>
+        {% endif %}
+        {{ wtf.quick_form(form, action=url_for('admin-users')) }}
+    </div>
+
+    <div class="container">
+        <h1>Utilisateurs</h1>
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>eID UNamur / login</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in users %}
+                    <tr style="{% if p.is_admin %}background-color: #ffd{% endif %}">
+                        <td><span>{{ p.eid }}</span> </td>
+                        <td>
+                            {% if not p.is_admin %}
+                                {{ m.gen_delete_dialog(p.id, p.eid, url_for('admin-users-delete', id=p.id), 'User') }}
+                                <a href="#deleteUser{{ p.id }}" data-toggle="modal">Supprimer</a>
+                                {% else %}
+                                <i>Néant</i>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}

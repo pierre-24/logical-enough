@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% import 'bootstrap/wtf.html' as wtf %}
+{% import 'macros.inc.html' as m %}
+
+{% block title %}Challenges{% endblock %}
+
+{% block page_content %}
+    <div class="container container-form">
+        {% if form_error %}
+            <div class="alert alert-danger">
+                {{ form_error }}
+            </div>
+        {% endif %}
+        {{ wtf.quick_form(form, action=url_for('admin-challenges')) }}
+    </div>
+
+    <div class="container">
+        <h1>Challenges</h1>
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Nom</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in challenges %}
+                    <tr style="{% if p.is_public %}background-color: #dfd{% endif %}">
+                        <td><a href="{{ url_for('admin-challenge', id=p.id) }}">{{ p.name }}</a></td>
+                        <td>
+                            {{ m.gen_delete_dialog(p.id, p.name, url_for('admin-challenge-delete', id=p.id), 'Challenge') }}
+                            <a href="{{ url_for('admin-challenge-toggle', id=p.id) }}">{% if p.is_public %}Masquer{% else %}Publier{% endif %}</a>
+                            &bull;
+                            <a href="#deleteChallenge{{ p.id }}" data-toggle="modal">Supprimer</a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}
