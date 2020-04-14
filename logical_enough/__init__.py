@@ -76,7 +76,7 @@ def create_app():
     api = Api(app)
     
     # Views
-    from logical_enough.visitor import views as user_views
+    from logical_enough.visitors import views as user_views
     app.add_url_rule('/', view_func=user_views.IndexPage.as_view('index'), endpoint='index')
 
     app.add_url_rule('/login.html', view_func=user_views.LoginPage.as_view('login'), endpoint='login')
@@ -89,7 +89,7 @@ def create_app():
     app.register_blueprint(admin_blueprint)
 
     # API
-    from logical_enough.visitor import views_api
+    from logical_enough.visitors import views_api
     api.add_resource(views_api.CheckMatch, '/api/checks')
     api.add_resource(views_api.CheckMatchMany, '/api/checks_many')
     api.add_resource(views_api.CheckQuestion, '/api/check_question')

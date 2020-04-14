@@ -1,7 +1,7 @@
 import flask
 
 from logical_enough import db
-from logical_enough.visitor.forms import LoginForm
+from logical_enough.visitors.forms import LoginForm
 from logical_enough.models import Challenge, UserChallenge, Question
 from logical_enough.base_views import RenderTemplateView, FormView, GetObjectMixin, PageContextMixin
 
