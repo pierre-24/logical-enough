@@ -17,8 +17,8 @@
                 {%  if user %}
                     <li><a href="{{ url_for('logout') }}">Se déconnecter</a></li>
                     {% if user.is_admin %}
-                        <li><a href="{{ url_for('admin-users') }}">Utilisateurs</a></li>
-                        <li><a href="{{ url_for('admin-challenges') }}">Challenges</a></li>
+                        <li><a href="{{ url_for('admin.users') }}">Utilisateurs</a></li>
+                        <li><a href="{{ url_for('admin.challenges') }}">Challenges</a></li>
                     {% endif %}
                 {% endif %}
             </ul>

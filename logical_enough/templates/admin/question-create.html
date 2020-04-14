@@ -13,9 +13,9 @@
         {% endif %}
         <h1>
             Nouvelle question pour le challenge
-            <a href="{{ url_for('admin-challenge', id=challenge.id) }}">{{ challenge.name }}</a>
+            <a href="{{ url_for('admin.challenge', id=challenge.id) }}">{{ challenge.name }}</a>
         </h1>
-        {{ wtf.quick_form(form, action=url_for('admin-question-create', id=challenge.id)) }}
+        {{ wtf.quick_form(form, action=url_for('admin.question-create', id=challenge.id)) }}
     </div>
 {% endblock %}
 

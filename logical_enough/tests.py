@@ -8,7 +8,7 @@ import flask
 
 from logical_enough import db, settings, create_app, logic
 from logical_enough.models import User, Challenge, Question, UserChallenge, Answer
-from logical_enough.views import PageContextMixin
+from logical_enough.base_views import PageContextMixin
 
 
 class TestLogic(TestCase):
@@ -162,7 +162,7 @@ class TestAPI(TestFlask):
         challenge_name = 'xxx'
         self.assertTrue(self.login(self.admin.name))
 
-        response = self.client.post(flask.url_for('admin-challenges'), data={
+        response = self.client.post(flask.url_for('admin.challenges'), data={
             'name': challenge_name
         }, follow_redirects=False)
         self.assertEqual(response.status_code, 302)
@@ -174,7 +174,7 @@ class TestAPI(TestFlask):
         documents = ['a', 'b', 'c']
 
         search_expression_1 = logic.parse('a OR b')
-        response = self.client.post(flask.url_for('admin-question-create', id=challenge.id), data={
+        response = self.client.post(flask.url_for('admin.question-create', id=challenge.id), data={
             'hint_expr': str(search_expression_1),
             'hint': '',
             'documents': ';'.join(documents)
@@ -184,7 +184,7 @@ class TestAPI(TestFlask):
         question_1 = Question.query.order_by(Question.id.desc()).first()
 
         search_expression_2 = logic.parse('a OR -b')
-        response = self.client.post(flask.url_for('admin-question-create', id=challenge.id), data={
+        response = self.client.post(flask.url_for('admin.question-create', id=challenge.id), data={
             'hint_expr': str(search_expression_2),
             'hint': '',
             'documents': ';'.join(documents)
@@ -199,7 +199,7 @@ class TestAPI(TestFlask):
         self.assertEqual(response.status_code, 404)
         self.assertEqual(UserChallenge.query.count(), user_challenge_count)  # cannot play if challenge is not public
 
-        self.client.get(flask.url_for('admin-challenge-toggle', id=challenge.id))
+        self.client.get(flask.url_for('admin.challenge-toggle', id=challenge.id))
 
         user_challenge_count = UserChallenge.query.count()
         response = self.client.get(flask.url_for('challenge', id=challenge.id))
@@ -316,7 +316,7 @@ class TestViews(TestFlask):
 
         user_count = User.query.count()
 
-        response = self.client.post(flask.url_for('admin-users'), data={
+        response = self.client.post(flask.url_for('admin.users'), data={
             'login': eid
         }, follow_redirects=False)
         self.assertEqual(response.status_code, 302)
@@ -328,12 +328,12 @@ class TestViews(TestFlask):
         self.assertFalse(last_user.is_admin)
 
         # delete user
-        response = self.client.delete(flask.url_for('admin-users-delete', id=last_user.id))
+        response = self.client.delete(flask.url_for('admin.user-delete', id=last_user.id))
         self.assertEqual(response.status_code, 302)
         self.assertEqual(User.query.count(), user_count)
 
         # add admin
-        response = self.client.post(flask.url_for('admin-users'), data={
+        response = self.client.post(flask.url_for('admin.users'), data={
             'login': eid,
             'is_admin': True
         }, follow_redirects=False)
@@ -346,17 +346,17 @@ class TestViews(TestFlask):
         self.assertTrue(last_user.is_admin)
 
         # cannot delete admin
-        response = self.client.delete(flask.url_for('admin-users-delete', id=last_user.id))
+        response = self.client.delete(flask.url_for('admin.user-delete', id=last_user.id))
         self.assertEqual(response.status_code, 403)
 
         self.assertEqual(User.query.count(), user_count + 1)
 
         # cannot delete unknown user
-        response = self.client.delete(flask.url_for('admin-users-delete', id=last_user.id + 1))
+        response = self.client.delete(flask.url_for('admin.user-delete', id=last_user.id + 1))
         self.assertEqual(response.status_code, 404)
 
         # cannot add twice the same person
-        response = self.client.post(flask.url_for('admin-users'), data={
+        response = self.client.post(flask.url_for('admin.users'), data={
             'login': eid
         }, follow_redirects=False)
         self.assertEqual(response.status_code, 200)
@@ -369,7 +369,7 @@ class TestViews(TestFlask):
 
         eid += 'x'
 
-        response = self.client.post(flask.url_for('admin-users'), data={
+        response = self.client.post(flask.url_for('admin.users'), data={
             'login': eid,
             'is_admin': True
         }, follow_redirects=False)
@@ -378,7 +378,7 @@ class TestViews(TestFlask):
         self.assertEqual(User.query.count(), user_count + 1)
 
         # normal user cannot delete
-        response = self.client.delete(flask.url_for('admin-users-delete', id=last_user.id))
+        response = self.client.delete(flask.url_for('admin.user-delete', id=last_user.id))
         self.assertEqual(response.status_code, 403)
 
         self.assertEqual(User.query.count(), user_count + 1)
@@ -391,7 +391,7 @@ class TestViews(TestFlask):
 
         challenges_count = Challenge.query.count()
 
-        response = self.client.post(flask.url_for('admin-challenges'), data={
+        response = self.client.post(flask.url_for('admin.challenges'), data={
             'name': name
         }, follow_redirects=False)
         self.assertEqual(response.status_code, 302)
@@ -403,21 +403,21 @@ class TestViews(TestFlask):
         self.assertFalse(last_challenge.is_public)
 
         # change challenge state
-        self.client.get(flask.url_for('admin-challenge-toggle', id=last_challenge.id))
+        self.client.get(flask.url_for('admin.challenge-toggle', id=last_challenge.id))
         last_challenge = Challenge.query.get(last_challenge.id)
         self.assertTrue(last_challenge.is_public)
 
-        self.client.get(flask.url_for('admin-challenge-toggle', id=last_challenge.id))
+        self.client.get(flask.url_for('admin.challenge-toggle', id=last_challenge.id))
         last_challenge = Challenge.query.get(last_challenge.id)
         self.assertFalse(last_challenge.is_public)
 
         # delete challenge
-        response = self.client.delete(flask.url_for('admin-challenge-delete', id=last_challenge.id))
+        response = self.client.delete(flask.url_for('admin.challenge-delete', id=last_challenge.id))
         self.assertEqual(response.status_code, 302)
         self.assertEqual(Challenge.query.count(), challenges_count)
 
         # normal user can't do anything
-        response = self.client.post(flask.url_for('admin-challenges'), data={
+        response = self.client.post(flask.url_for('admin.challenges'), data={
             'name': name
         }, follow_redirects=False)
         self.assertEqual(response.status_code, 302)
@@ -428,18 +428,18 @@ class TestViews(TestFlask):
 
         name += 'x'
 
-        response = self.client.post(flask.url_for('admin-challenges'), data={
+        response = self.client.post(flask.url_for('admin.challenges'), data={
             'name': name
         }, follow_redirects=False)
         self.assertEqual(response.status_code, 403)
         self.assertEqual(Challenge.query.count(), challenges_count + 1)  # cannot add
 
-        response = self.client.get(flask.url_for('admin-challenge-toggle', id=last_challenge.id))
+        response = self.client.get(flask.url_for('admin.challenge-toggle', id=last_challenge.id))
         self.assertEqual(response.status_code, 403)
         last_challenge = Challenge.query.get(last_challenge.id)
         self.assertFalse(last_challenge.is_public)  # cannot change state
 
-        response = self.client.delete(flask.url_for('admin-challenge-delete', id=last_challenge.id))
+        response = self.client.delete(flask.url_for('admin.challenge-delete', id=last_challenge.id))
         self.assertEqual(response.status_code, 403)
         self.assertEqual(Challenge.query.count(), challenges_count + 1)  # cannot delete
 
@@ -447,7 +447,7 @@ class TestViews(TestFlask):
         challenge_name = 'xxx'
         self.assertTrue(self.login(self.admin.name))
 
-        response = self.client.post(flask.url_for('admin-challenges'), data={
+        response = self.client.post(flask.url_for('admin.challenges'), data={
             'name': challenge_name
         }, follow_redirects=False)
         self.assertEqual(response.status_code, 302)
@@ -462,7 +462,7 @@ class TestViews(TestFlask):
 
         hint = 'yyyy'
 
-        response = self.client.post(flask.url_for('admin-question-create', id=challenge.id), data={
+        response = self.client.post(flask.url_for('admin.question-create', id=challenge.id), data={
             'hint_expr': str(search_expression),
             'hint': hint,
             'documents': ';'.join(documents)
@@ -488,7 +488,7 @@ class TestViews(TestFlask):
         documents.append('d')
 
         response = self.client.post(
-            flask.url_for('admin-question', id=last_question.id, challenge_id=challenge.id),
+            flask.url_for('admin.question', id=last_question.id, challenge_id=challenge.id),
             data={
                 'hint_expr': str(search_expression),
                 'hint': hint + 'x',
@@ -514,7 +514,7 @@ class TestViews(TestFlask):
         search_expression = logic.parse('a OR -b')
 
         response = self.client.post(
-            flask.url_for('admin-question', id=last_question.id, challenge_id=challenge.id),
+            flask.url_for('admin.question', id=last_question.id, challenge_id=challenge.id),
             data={
                 'hint_expr': str(search_expression),
                 'hint': hint,
@@ -538,14 +538,14 @@ class TestViews(TestFlask):
 
         # delete question
         response = self.client.post(
-            flask.url_for('admin-question-delete', id=last_question.id, challenge_id=challenge.id),
+            flask.url_for('admin.question-delete', id=last_question.id, challenge_id=challenge.id),
             follow_redirects=False)
         self.assertEqual(response.status_code, 302)
 
         self.assertEqual(Question.query.count(), question_count)
 
         # delete challenge also delete question(s)
-        response = self.client.post(flask.url_for('admin-question-create', id=challenge.id), data={
+        response = self.client.post(flask.url_for('admin.question-create', id=challenge.id), data={
             'hint_expr': str(search_expression),
             'hint': hint,
             'documents': ';'.join(documents)
@@ -553,19 +553,19 @@ class TestViews(TestFlask):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(Question.query.count(), question_count + 1)
 
-        response = self.client.delete(flask.url_for('admin-challenge-delete', id=challenge.id))
+        response = self.client.delete(flask.url_for('admin.challenge-delete', id=challenge.id))
         self.assertEqual(response.status_code, 302)
         self.assertEqual(Question.query.count(), question_count)
 
         # user can't!
-        response = self.client.post(flask.url_for('admin-challenges'), data={
+        response = self.client.post(flask.url_for('admin.challenges'), data={
             'name': challenge_name
         }, follow_redirects=False)
         self.assertEqual(response.status_code, 302)  # re-add challenge
 
         challenge = Challenge.query.order_by(Challenge.id.desc()).first()
 
-        response = self.client.post(flask.url_for('admin-question-create', id=challenge.id), data={
+        response = self.client.post(flask.url_for('admin.question-create', id=challenge.id), data={
             'hint_expr': str(search_expression),
             'hint': hint,
             'documents': ';'.join(documents)
@@ -577,7 +577,7 @@ class TestViews(TestFlask):
         self.assertTrue(self.login(self.user.name))
 
         # user cannot add question
-        response = self.client.post(flask.url_for('admin-question-create', id=challenge.id), data={
+        response = self.client.post(flask.url_for('admin.question-create', id=challenge.id), data={
             'hint_expr': 'a',
             'hint': hint,
             'documents': ';'.join(documents)
@@ -587,7 +587,7 @@ class TestViews(TestFlask):
 
         # user cannot modify question
         response = self.client.post(
-            flask.url_for('admin-question', id=last_question.id, challenge_id=challenge.id),
+            flask.url_for('admin.question', id=last_question.id, challenge_id=challenge.id),
             data={
                 'hint_expr': 'a',
                 'hint': hint,
@@ -601,7 +601,7 @@ class TestViews(TestFlask):
 
         # user cannot delete question
         response = self.client.post(
-            flask.url_for('admin-question-delete', id=last_question.id, challenge_id=challenge.id),
+            flask.url_for('admin.question-delete', id=last_question.id, challenge_id=challenge.id),
             follow_redirects=False)
         self.assertEqual(response.status_code, 403)
 

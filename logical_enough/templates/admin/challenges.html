@@ -11,7 +11,7 @@
                 {{ form_error }}
             </div>
         {% endif %}
-        {{ wtf.quick_form(form, action=url_for('admin-challenges')) }}
+        {{ wtf.quick_form(form, action=url_for('admin.challenges')) }}
     </div>
 
     <div class="container">
@@ -26,10 +26,10 @@
             <tbody>
                 {% for p in challenges %}
                     <tr style="{% if p.is_public %}background-color: #dfd{% endif %}">
-                        <td><a href="{{ url_for('admin-challenge', id=p.id) }}">{{ p.name }}</a></td>
+                        <td><a href="{{ url_for('admin.challenge', id=p.id) }}">{{ p.name }}</a></td>
                         <td>
-                            {{ m.gen_delete_dialog(p.id, p.name, url_for('admin-challenge-delete', id=p.id), 'Challenge') }}
-                            <a href="{{ url_for('admin-challenge-toggle', id=p.id) }}">{% if p.is_public %}Masquer{% else %}Publier{% endif %}</a>
+                            {{ m.gen_delete_dialog(p.id, p.name, url_for('admin.challenge-delete', id=p.id), 'Challenge') }}
+                            <a href="{{ url_for('admin.challenge-toggle', id=p.id) }}">{% if p.is_public %}Masquer{% else %}Publier{% endif %}</a>
                             &bull;
                             <a href="#deleteChallenge{{ p.id }}" data-toggle="modal">Supprimer</a>
                         </td>

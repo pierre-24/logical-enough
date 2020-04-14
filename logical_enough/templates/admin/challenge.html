@@ -8,7 +8,7 @@
 
     <div class="container">
         <h1>Challenge: {{ challenge.name }}</h1>
-        <p><a href="{{ url_for('admin-question-create', id=challenge.id) }}">Créer une nouvelle question</a></p>
+        <p><a href="{{ url_for('admin.question-create', id=challenge.id) }}">Créer une nouvelle question</a></p>
         <table class="table table-bordered">
             <thead>
                 <tr>
@@ -20,13 +20,13 @@
             <tbody>
                 {% for p in questions %}
                     <tr>
-                        <td><a href="{{ url_for('admin-question', id=p.id, challenge_id=p.challenge) }}">{{ p.hint_expr }}</a></td>
+                        <td><a href="{{ url_for('admin.question', id=p.id, challenge_id=p.challenge) }}">{{ p.hint_expr }}</a></td>
                         <td>{{ p.hint }}</td>
                         <td>
-                            {{ m.gen_delete_dialog(p.id, p.hint_expr, url_for('admin-question-delete', id=p.id, challenge_id=p.challenge), 'Question') }}
+                            {{ m.gen_delete_dialog(p.id, p.hint_expr, url_for('admin.question-delete', id=p.id, challenge_id=p.challenge), 'Question') }}
                             <a href="#deleteQuestion{{ p.id }}" data-toggle="modal">Supprimer</a>
                             &bull;
-                            <a href="{{ url_for('admin-answers', id=p.id, challenge_id=p.challenge) }}">Voir les réponses</a>
+                            <a href="{{ url_for('admin.question-answers', id=p.id, challenge_id=p.challenge) }}">Voir les réponses</a>
                         </td>
                     </tr>
                 {% endfor %}

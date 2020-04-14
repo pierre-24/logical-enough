@@ -11,7 +11,7 @@
                 {{ form_error }}
             </div>
         {% endif %}
-        {{ wtf.quick_form(form, action=url_for('admin-users')) }}
+        {{ wtf.quick_form(form, action=url_for('admin.users')) }}
     </div>
 
     <div class="container">
@@ -29,7 +29,7 @@
                         <td><span>{{ p.name }}</span> </td>
                         <td>
                             {% if not p.is_admin %}
-                                {{ m.gen_delete_dialog(p.id, p.name, url_for('admin-users-delete', id=p.id), 'User') }}
+                                {{ m.gen_delete_dialog(p.id, p.name, url_for('admin.user-delete', id=p.id), 'User') }}
                                 <a href="#deleteUser{{ p.id }}" data-toggle="modal">Supprimer</a>
                                 {% else %}
                                 <i>Néant</i>
