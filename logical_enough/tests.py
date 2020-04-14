@@ -13,6 +13,19 @@ from logical_enough.base_views import PageContextMixin
 
 class TestLogic(TestCase):
 
+    def test_lexer(self):
+
+        exprs = [
+            ('a', ['a', None]),
+            ('-a', ['-', 'a', None]),
+            ('a OR b', ['a', 'OR', 'b', None]),
+            ('(a* OR b) c', ['(', 'a*', 'OR', 'b', ')', 'c', None])
+        ]
+
+        for e, toks in exprs:
+            p = logic.Lexer(e)
+            self.assertEqual(list(t.value for t in p.tokenize_all()), toks)
+
     def test_parser(self):
 
         exprs = [
@@ -21,6 +34,7 @@ class TestLogic(TestCase):
             'a b',
             'a OR b',
             '(a OR b) c',
+            'a OR b c'
         ]
 
         for e in exprs:
@@ -29,13 +43,20 @@ class TestLogic(TestCase):
 
             self.assertEqual(str(s), e)
 
+    def test_analyzer(self):
+        m = ['a', 'b', 'x', 'z']
+        mx = list(t.value for t in logic.Analyzer('a b c x y z').filter())
+        self.assertEqual(m, mx)
+
     def test_match(self):
         exprs_match = [
-            ('a', ['a', 'a b', 'b a'], ['b', '']),
+            ('x', ['x', 'x z', 'z x'], ['z', '']),
             ('-a', ['b', ''], ['a']),
-            ('a OR b', ['a', 'a b', 'b', 'a c'], ['c', '']),
-            ('(a OR b) c', ['a c', 'b c'], ['a', 'b', 'c', '']),
-            ('a OR -a', ['a', 'b', ''], [])
+            ('a OR b', ['a', 'a b', 'b', 'a x'], ['x', '']),
+            ('(a OR b) x', ['a x', 'b x'], ['a', 'b', 'x', '']),
+            ('a OR -a', ['a', 'b', ''], []),
+            ('a*', ['a', 'ab', 'x a', 'ax az'], ['b', 'x', 'xa', 'xax']),
+            ('"a b"', ['a b', 'a b x', 'x a b x'], ['a', 'b', 'a x b', 'b a', 'ab'])
         ]
 
         for e, st, nst in exprs_match:
@@ -43,9 +64,11 @@ class TestLogic(TestCase):
             s = p.search_expr()
 
             for x in st:
-                self.assertTrue(s.match(x), msg=e + ' is not matching ' + x)
+                x_toks = logic.analyze(x)
+                self.assertTrue(s.match(x_toks), msg=e + ' is not matching ' + x)
             for x in nst:
-                self.assertFalse(s.match(x), msg=e + ' is matching ' + x)
+                x_toks = logic.analyze(x)
+                self.assertFalse(s.match(x_toks), msg=e + ' is matching ' + x)
 
 
 class TestFlask(TestCase):
