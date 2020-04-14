@@ -155,7 +155,7 @@ class TestAPI(TestFlask):
         self.assertTrue(make_request('"a b"', 'a b')['matched'])
 
         # error behavior
-        self.assertIn('message', make_request('a b OR c', 'a', status=400))  # OR in a AND expression
+        self.assertIn('message', make_request('a (b OR c', 'a', status=400))  # unclosed parenthesis
 
     def test_checks_many(self):
 
@@ -249,14 +249,14 @@ class TestAPI(TestFlask):
                 self.assertIn(d, question_1.get_good_documents())
             else:
                 self.assertIn(d, question_1.get_wrong_documents())
-            self.assertTrue(test_expr.match(d))
+            self.assertTrue(test_expr.match(logic.analyze(d)))
 
         for d, is_good in j['wrong_documents']:
             if is_good:
                 self.assertIn(d, question_1.get_good_documents())
             else:
                 self.assertIn(d, question_1.get_wrong_documents())
-            self.assertFalse(test_expr.match(d), msg=d)
+            self.assertFalse(test_expr.match(logic.analyze(d)), msg=d)
 
         # good answer to first question
         j = make_request(str(search_expression_1), self.admin.id, challenge.id, question_1.id)
@@ -481,7 +481,7 @@ class TestViews(TestFlask):
         question_count = Question.query.count()
 
         search_expression = logic.parse('a OR b')
-        documents = ['a', 'b', 'c']
+        documents = ['a', 'b', 'x']
 
         hint = 'yyyy'
 
@@ -502,13 +502,13 @@ class TestViews(TestFlask):
         wrong_docs = last_question.get_wrong_documents()
 
         for d in documents:
-            if search_expression.match(d):
+            if search_expression.match(logic.analyze(d)):
                 self.assertIn(d, good_docs)
             else:
                 self.assertIn(d, wrong_docs)
 
         # modify question: add documents
-        documents.append('d')
+        documents.append('wrong')
 
         response = self.client.post(
             flask.url_for('admin.question', id=last_question.id, challenge_id=challenge.id),
@@ -528,7 +528,7 @@ class TestViews(TestFlask):
         wrong_docs = last_question.get_wrong_documents()
 
         for d in documents:
-            if search_expression.match(d):
+            if search_expression.match(logic.analyze(d)):
                 self.assertIn(d, good_docs)
             else:
                 self.assertIn(d, wrong_docs)
@@ -554,7 +554,7 @@ class TestViews(TestFlask):
         wrong_docs = last_question.get_wrong_documents()
 
         for d in documents:
-            if search_expression.match(d):
+            if search_expression.match(logic.analyze(d)):
                 self.assertIn(d, good_docs)
             else:
                 self.assertIn(d, wrong_docs)
