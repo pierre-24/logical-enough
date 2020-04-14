@@ -1,0 +1,6 @@
+flask
+Flask-SQLAlchemy
+Flask-WTF
+flask-bootstrap
+Flask-Restful
+gunicorn

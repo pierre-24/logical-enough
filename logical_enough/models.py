@@ -1,4 +1,4 @@
-from commons import db
+from logical_enough import db
 
 
 class User(db.Model):

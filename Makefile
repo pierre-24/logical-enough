@@ -9,16 +9,20 @@ help:
 	@echo "  help                        to get this help"
 
 init:
-	pipenv install --dev --ignore-pipfile
+	pip-sync && pip install -e .
+	pip install logical-enough[dev]
 
 init-db:
-	export FLASK_APP=app.py; flask init
+	export FLASK_APP=logical_enough; flask init
 
 sync:
-	pipenv sync --dev
+	pip-sync
 
 lint:
-	pipenv run flake8 . --max-line-length=120 --ignore=N802
+	flake8 logical_enough --max-line-length=120 --ignore=N802
 
-test:
-	pipenv run python -m unittest discover -s tests
+tests:
+	python -m unittest discover -s logical_enough.tests
+
+run:
+	export FLASK_APP=logical_enough; export FLASK_DEBUG=1; flask run -h 127.0.0.1 -p 5000

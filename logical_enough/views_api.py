@@ -1,8 +1,7 @@
 from flask_restful import Resource, reqparse
 
-import logic
-import commons
-from models import Question, UserChallenge, Challenge, Answer
+from logical_enough import logic, db
+from logical_enough.models import Question, UserChallenge, Challenge, Answer
 
 
 def make_error(msg, arg, code=400):
@@ -112,9 +111,9 @@ class CheckQuestion(Resource):
             else:
                 user_challenge.current_question = questions[index + 1].id
 
-            commons.db.session.add(user_challenge)
-            commons.db.session.add(Answer(args.get('user'), question.id, args.get('search_expression')))
-            commons.db.session.commit()
+            db.session.add(user_challenge)
+            db.session.add(Answer(args.get('user'), question.id, args.get('search_expression')))
+            db.session.commit()
 
         return {
             'good_documents': [(d, d in good_documents) for d in good_docs],

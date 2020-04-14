@@ -6,12 +6,9 @@ import os
 
 import flask
 
-import logic
-import app
-import settings
-from commons import db
-from models import User, Challenge, Question, UserChallenge, Answer
-from views import PageContextMixin
+from logical_enough import db, settings, create_app, logic
+from logical_enough.models import User, Challenge, Question, UserChallenge, Answer
+from logical_enough.views import PageContextMixin
 
 
 class TestLogic(TestCase):
@@ -54,7 +51,7 @@ class TestLogic(TestCase):
 class TestFlask(TestCase):
 
     def setUp(self):
-        self.app = app.app
+        self.app = create_app()
 
         self.app.config['TESTING'] = True
         self.app.config['WTF_CSRF_ENABLED'] = False

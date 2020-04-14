@@ -3,10 +3,9 @@ import functools
 import flask
 from flask.views import MethodView
 
-from models import User, Challenge, Question, UserChallenge, Answer
-from forms import LoginForm, UserForm, ChallengeForm, QuestionForm
-import commons
-import logic
+from logical_enough.models import User, Challenge, Question, UserChallenge, Answer
+from logical_enough.forms import LoginForm, UserForm, ChallengeForm, QuestionForm
+from logical_enough import logic, db
 
 
 class RenderTemplateView(MethodView):
@@ -131,8 +130,8 @@ class DeleteView(GetObjectMixin, MethodView):
         if not self.pre_deletion(obj, *args, **kwargs):
             return flask.abort(403)
 
-        commons.db.session.delete(obj)
-        commons.db.session.commit()
+        db.session.delete(obj)
+        db.session.commit()
 
         self.post_deletion(obj)
 
@@ -275,8 +274,8 @@ class ChallengePage(PageContextMixin, GetObjectMixin, RenderTemplateView):
         if user_challenge is None:  # never did the challenge, starts it
             self.current_question = Question.query.filter(Question.challenge.is_(obj.id)).first()
             user_challenge = UserChallenge(self.get_user().id, obj.id, self.current_question.id)
-            commons.db.session.add(user_challenge)
-            commons.db.session.commit()
+            db.session.add(user_challenge)
+            db.session.commit()
         else:
             self.challenge_done = user_challenge.is_done
             if not self.challenge_done:
@@ -317,8 +316,8 @@ class AdminUsersPage(PageContextMixin, FormView):
             return super().form_invalid(form)
 
         user = User(form.login.data, is_admin=form.is_admin.data)
-        commons.db.session.add(user)
-        commons.db.session.commit()
+        db.session.add(user)
+        db.session.commit()
 
         flask.flash('Personne ajoutée', 'success')
         self.success_url = flask.url_for('admin-users')
@@ -361,8 +360,8 @@ class AdminChallengesPage(PageContextMixin, FormView):
             return super().form_invalid(form)
 
         challenge = Challenge(form.name.data)
-        commons.db.session.add(challenge)
-        commons.db.session.commit()
+        db.session.add(challenge)
+        db.session.commit()
 
         flask.flash('Challenge créé', 'success')
         self.success_url = flask.url_for('admin-challenges')
@@ -389,8 +388,8 @@ class AdminChallengesToggle(PageContextMixin, MethodView):
 
         if challenge is not None:
             challenge.is_public = not challenge.is_public
-            commons.db.session.add(challenge)
-            commons.db.session.commit()
+            db.session.add(challenge)
+            db.session.commit()
         else:
             flask.flash("Ce challenge n'existe pas")
 
@@ -428,8 +427,8 @@ class AdminCreateQuestionPage(PageContextMixin, GetObjectMixin, FormView):
         if q is None:
             return self.form_invalid(form)
 
-        commons.db.session.add(q)
-        commons.db.session.commit()
+        db.session.add(q)
+        db.session.commit()
 
         self.success_url = flask.url_for('admin-challenge', id=self.object.id)
         return super().form_valid(form)
@@ -525,8 +524,8 @@ class AdminQuestionPage(PageContextMixin, GetObjectMixin, FormView):
         if q is None:
             return self.form_invalid(form)
 
-        commons.db.session.add(q)
-        commons.db.session.commit()
+        db.session.add(q)
+        db.session.commit()
         self.success_url = flask.url_for('admin-challenge', id=self.challenge.id)
 
         return super().form_valid(form)
