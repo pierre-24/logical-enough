@@ -48,19 +48,19 @@ function documents_management_modify_doc(input) {
     input.data('prev-value', new_value);
 
     // check matching
-    documents_management_doc_check_match(input);
+    documents_management_doc_check_match(input, $('#hint_expr').val(), true);
 }
 
-function documents_management_doc_check_match(input) {
+function documents_management_doc_check_match(input, search_expr, show_tooltip=false) {
     $.ajax({
         url: '/api/checks',
         data: {
             document: input.val(),
-            search_expression: $('#hint_expr').val()
+            search_expression: search_expr,
         },
         success: function (result) {
             if ('matched' in result) {
-                documents_management_set_matched(input, result['matched'], result['normalized_document'], true);
+                documents_management_set_matched(input, result['matched'], result['normalized_document'], show_tooltip);
             } else {
                 documents_management_set_matched(input, false);
                 console.log(result);
@@ -221,4 +221,14 @@ function challenge_treat_result(result) {
         $('#search_expr').prop('disabled', true);
         $('#messageSucceed').css('display', 'block')
     }
+}
+
+/* explications */
+function documents_tests_setup() {
+    $('.test-document').each(function () {
+        $(this).keyup(function () {
+            let expr = $(this).data('expr');
+            documents_management_doc_check_match($(this), expr);
+        });
+    });
 }

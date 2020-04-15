@@ -62,6 +62,11 @@ class IndexPage(PageContextMixin, RenderTemplateView):
         return context
 
 
+class ExplainPage(PageContextMixin, RenderTemplateView):
+    template_name = 'explain.html'
+    decorators = [PageContextMixin.login_required]
+
+
 class ChallengePage(PageContextMixin, GetObjectMixin, RenderTemplateView):
 
     decorators = [PageContextMixin.login_required]

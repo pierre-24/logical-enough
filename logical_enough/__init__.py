@@ -77,13 +77,14 @@ def create_app():
 
     # Views
     from logical_enough.visitors import views as user_views
-    app.add_url_rule('/', view_func=user_views.IndexPage.as_view('index'), endpoint='index')
+    app.add_url_rule('/', view_func=user_views.IndexPage.as_view('index'))
+    app.add_url_rule('/explications.html', view_func=user_views.ExplainPage.as_view('explain'))
 
-    app.add_url_rule('/login.html', view_func=user_views.LoginPage.as_view('login'), endpoint='login')
+    app.add_url_rule('/login.html', view_func=user_views.LoginPage.as_view('login'))
     app.add_url_rule('/logout.html', view_func=user_views.logout, endpoint='logout')
 
     app.add_url_rule(
-        '/challenge-<int:id>.html', view_func=user_views.ChallengePage.as_view('challenge'), endpoint='challenge')
+        '/challenge-<int:id>.html', view_func=user_views.ChallengePage.as_view('challenge'))
 
     from logical_enough.admin.views import admin_blueprint
     app.register_blueprint(admin_blueprint)

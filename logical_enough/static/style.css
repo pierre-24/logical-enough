@@ -53,3 +53,12 @@ footer {
     border-color: #faa;
     background-color: #fdd;
 }
+
+#explain .test-document {
+    width: 100%;
+}
+
+#explain p {
+    margin-top: 24px;
+    margin-bottom: 24px;
+}
