@@ -8,6 +8,10 @@ def make_error(msg, arg, code=400):
     return {'message': {arg: msg}}, code
 
 
+def normalize(tokens, sep=' '):
+    return sep.join(str(t.value) for t in tokens)
+
+
 class CheckMatch(Resource):
 
     def __init__(self):
@@ -29,7 +33,7 @@ class CheckMatch(Resource):
 
         return {
             'document': doc,
-            'normalized_document': ' '.join(str(t.value) for t in normalized_doc),
+            'normalized_document': normalize(normalized_doc),
             'matched': expression.match(normalized_doc)
         }
 
@@ -50,7 +54,17 @@ class CheckMatchMany(Resource):
         except logic.ParserException as e:
             return make_error({'position': e.token.position, 'error': e.message}, 'search_expression')
 
-        return {'matched': [expression.match(logic.analyze(d)) for d in args.get('documents')]}
+        documents = []
+        for d in args.get('documents'):
+            normalized_doc = logic.analyze(d)
+
+            documents.append({
+                'document': d,
+                'normalized_document': normalize(normalized_doc),
+                'matched': expression.match(normalized_doc)
+            })
+
+        return {'documents': documents}
 
 
 class CheckQuestion(Resource):

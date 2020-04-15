@@ -134,11 +134,11 @@ function documents_management_change_expr(input) {
         },
         traditional: true,
         success: function (result) {
-            if ('matched' in result) {
-                let matched = result['matched'];
+            if ('documents' in result) {
+                let documents = result['documents'];
                 let i = 0;
                 $documents.each(function () {
-                    documents_management_set_matched($(this), matched[i]);
+                    documents_management_set_matched($(this), documents[i]['matched']);
                     i += 1;
                 })
             } else {

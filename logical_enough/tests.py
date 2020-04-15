@@ -166,7 +166,10 @@ class TestAPI(TestFlask):
             j = json.loads(response.get_data().decode())
             return j
 
-        self.assertEqual(make_request('a OR b', ['a', 'b', 'c'])['matched'], [True, True, False])
+        result = make_request('a OR b', ['a', 'b', 'x'])
+        matched = [d['matched'] for d in result['documents']]
+
+        self.assertEqual(matched, [True, True, False])
 
     def test_check_question(self):
 
