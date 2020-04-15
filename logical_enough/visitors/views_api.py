@@ -8,6 +8,10 @@ def make_error(msg, arg, code=400):
     return {'message': {arg: msg}}, code
 
 
+def normalize(tokens, sep=' '):
+    return sep.join(str(t.value) for t in tokens)
+
+
 class CheckMatch(Resource):
 
     def __init__(self):
@@ -19,14 +23,18 @@ class CheckMatch(Resource):
     def get(self):
         args = self.parser.parse_args()
 
+        doc = args.get('document')
+        normalized_doc = logic.analyze(doc)
+
         try:
-            expression = logic.parse(args.get('search_expression', ''))
+            expression = logic.parse(args.get('search_expression'))
         except logic.ParserException as e:
             return make_error({'position': e.token.position, 'error': e.message}, 'search_expression')
 
         return {
-            'document': args.get('document'),
-            'matched': expression.match(args.get('document'))
+            'document': doc,
+            'normalized_document': normalize(normalized_doc),
+            'matched': expression.match(normalized_doc)
         }
 
 
@@ -42,11 +50,21 @@ class CheckMatchMany(Resource):
         args = self.parser.parse_args()
 
         try:
-            expression = logic.parse(args.get('search_expression', ''))
+            expression = logic.parse(args.get('search_expression'))
         except logic.ParserException as e:
             return make_error({'position': e.token.position, 'error': e.message}, 'search_expression')
 
-        return {'matched': [expression.match(d) for d in args.get('documents')]}
+        documents = []
+        for d in args.get('documents'):
+            normalized_doc = logic.analyze(d)
+
+            documents.append({
+                'document': d,
+                'normalized_document': normalize(normalized_doc),
+                'matched': expression.match(normalized_doc)
+            })
+
+        return {'documents': documents}
 
 
 class CheckQuestion(Resource):
@@ -90,7 +108,7 @@ class CheckQuestion(Resource):
         good_docs = []
         wrong_docs = []
         for d in documents:
-            if expression.match(d):
+            if expression.match(logic.analyze(d)):
                 good_docs.append(d)
             else:
                 wrong_docs.append(d)

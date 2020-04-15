@@ -1,58 +1,61 @@
-import string
+import re
+
+from typing import Iterator, Union, List
+from logical_enough.french_stopwords import FRENCH_STOPWORDS
 
 EOF = 'EOF'
 MINUS = '-'
 QUOTE = '"'
-START_PAR = '('
-END_PAR = ')'
+LPAR = '('
+RPAR = ')'
 SPACE = 'SPACE'
-LOGIC_OR = '|'
 
 SYMBOL_TR = {
     ' ': SPACE,
     '-': MINUS,
     '"': QUOTE,
-    '(': START_PAR,
-    ')': END_PAR,
-    '|': LOGIC_OR
+    '(': LPAR,
+    ')': RPAR
 }
 
 ALL_SYMBOLS = ''.join(SYMBOL_TR.keys())
 
 WORD = 'WORD'
 
+AND = 'AND'
+OR = 'OR'
+NOT = 'NOT'
+
+ALL_OPERATORS = [AND, OR, NOT]
+
 
 # Token
 class Token:
     """Token class"""
-    def __init__(self, type_, value, position=-1):
+    def __init__(self, type_: str, value: Union[str, None], position: int = -1):
         self.type = type_
         self.value = value
         self.position = position
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return 'Token({}, {}{})'.format(
             self.type, repr(self.value), ', {}'.format(self.position) if self.position > -1 else '')
 
 
 # Lexer
 class Lexer:
-    def __init__(self, input_):
+    def __init__(self, input_: str):
         self.input = input_
         self.pos = 0
 
     @staticmethod
-    def find_next_symbol(w, s, start=0):
+    def find_next_symbol(w: Union[str, List], s: str, start: int = 0) -> int:
         """Find the next element of ``w`` in ``s``, starting at ``start``.
         Returns -1 if nothing found.
 
         :param w: symbols
-        :type w: str|list
         :param s: string
-        :type s: str
         :param start: starting search position
-        :type start: int
-        :rtype: int
         """
         for i, c in enumerate(s[start:]):
             if c in w:
@@ -60,36 +63,40 @@ class Lexer:
 
         return -1
 
-    def tokenize(self):
-        """Tokenize the input"""
+    def tokenize(self) -> Iterator[Token]:
+        """Get the next token"""
 
         while self.pos < len(self.input):
             pos = self.pos
             if self.input[pos] in SYMBOL_TR:
-                yield Token(SYMBOL_TR[self.input[pos]], self.input[pos], pos)
+                if self.input[pos] != ' ':  # skip space
+                    yield Token(SYMBOL_TR[self.input[pos]], self.input[pos], pos)
                 self.pos += 1
             else:
                 next_space = Lexer.find_next_symbol(ALL_SYMBOLS, self.input, self.pos)
+
                 if next_space < 0:
-                    yield Token(WORD, self.input[pos:len(self.input)], pos)
+                    word = self.input[pos:]
                     self.pos = len(self.input)
                 else:
-                    yield Token(WORD, self.input[pos:next_space], pos)
+                    word = self.input[pos:next_space]
                     self.pos = next_space
+
+                if word in ALL_OPERATORS:
+                    yield Token(word, word, pos)
+                else:
+                    yield Token(WORD, word, pos)
 
         yield Token(EOF, None, self.pos)
 
-    def tokenize_and_filter(self):
-        """Filter tokens:
-
-        + Lower words (that are not "AND" or "OR") ;
-        """
+    def tokenize_all(self) -> Iterator[Token]:
+        """Tokenize all the input"""
 
         for t in self.tokenize():
-            if t.type == WORD:
-                if t.value not in ['AND', 'OR']:
-                    t.value = t.value.lower()
             yield t
+
+            if t.type == EOF:
+                break
 
 
 # Ast
@@ -97,22 +104,21 @@ class AST:
     def __init__(self):
         self.parent = None
 
-    def match(self, s):
+    def match(self, s: List[Token]) -> bool:
         raise NotImplementedError()
 
 
 class SearchExpr(AST):
-    def __init__(self, expr=None):
+    def __init__(self, expr: Union['AndExpr', 'OrExpr', None] = None):
         super().__init__()
 
         self.expr = expr
         if expr is not None:
             expr.parent = self
 
-    def match(self, s):
+    def match(self, s: List[Token]) -> bool:
         if self.expr is not None:
-            return self.expr.match(
-                list(e.lower() for e in s.translate(str.maketrans('', '', string.punctuation)).split(' ')))
+            return self.expr.match(s)
         else:
             return False
 
@@ -123,76 +129,111 @@ class SearchExpr(AST):
             return ''
 
 
-class AndExprs(AST):
-    def __init__(self, values):
+class SeqExpr(AST):
+    def __init__(self, values: List):
         super().__init__()
         self.values = values
         for v in values:
             v.parent = self
 
-    def match(self, s):
+
+class AndExpr(SeqExpr):
+    def __init__(self, values: List['OrExpr']):
+        super().__init__(values)
+
+    def match(self, s: List[Token]) -> bool:
         return all(v.match(s) for v in self.values)
 
     def __str__(self):
-        return ' '.join(
-            '({})'.format(str(v)) if isinstance(v, OrExprs) else str(v) for v in self.values)
+        return ' '.join(str(v) for v in self.values)
 
 
-class OrExprs(AST):
-    def __init__(self, values):
-        super().__init__()
-        self.values = values
-        for v in values:
-            v.parent = self
+class OrExpr(SeqExpr):
+    def __init__(self, values: List['Term']):
+        super().__init__(values)
 
-    def match(self, s):
+    def match(self, s: List[Token]) -> bool:
         return any(v.match(s) for v in self.values)
 
     def __str__(self):
-        return ' OR '.join(
-            '({})'.format(str(v)) if isinstance(v, AndExprs) else str(v) for v in self.values)
+        return ' OR '.join(str(v) for v in self.values)
 
 
-class NotExpr(AST):
-    def __init__(self, expr):
+class Term(AST):
+    def __init__(self, expr: Union['NotExpr', 'SingleTerm', 'Group', 'SubExpr']):
         super().__init__()
         self.expr = expr
         expr.parent = self
 
-    def match(self, s):
+    def match(self, s: List[Token]) -> bool:
+        return self.expr.match(s)
+
+    def __str__(self):
+        return str(self.expr)
+
+
+class NotExpr(AST):
+    def __init__(self, expr: Term):
+        super().__init__()
+        self.expr = expr
+        expr.parent = self
+
+    def match(self, s: List[Token]) -> bool:
         return not self.expr.match(s)
 
     def __str__(self):
         return '-' + str(self.expr)
 
 
-class SearchTerm(AST):
-    def __init__(self, term):
+class SingleTerm(AST):
+    def __init__(self, word: str):
         super().__init__()
-        self.term = term
-        self._spl = term.split(' ')
-
-    def match(self, s):
-        if ' ' in self.term:
-            index = -1
-            while True:
-                try:
-                    index = s.index(self._spl[0], index + 1 if index >= 0 else 0)
-                    if index > len(s) - len(self._spl):
-                        return False
-                    else:
-                        if all(self._spl[i] == s[index + i] for i in range(len(self._spl))):
-                            return True
-                except ValueError:
-                    return False
-        else:
-            return self.term in s
+        self.word = word
+        self.has_wildcard = '*' in self.word
+        self.reg = None
+        if self.has_wildcard:
+            self.reg = re.compile(self.word.replace('*', '.*'))
 
     def __str__(self):
-        if ' ' in self.term:
-            return '"{}"'.format(self.term)
-        else:
-            return self.term
+        return self.word
+
+    def match(self, s: List[Token]) -> bool:
+        for t in s:
+            if not self.has_wildcard and t.value == self.word:
+                return True
+            elif self.has_wildcard and self.reg.match(t.value):
+                return True
+
+        return False
+
+
+class Group(AST):
+    C = '+'
+
+    def __init__(self, words: List[str]):
+        super().__init__()
+        self.words = words
+        self.w_all = self.C.join(words)
+
+    def __str__(self):
+        return '"{}"'.format(' '.join(self.words))
+
+    def match(self, s: List[Token]) -> bool:
+        s_all = self.C.join(t.value for t in s)
+        return self.w_all in s_all
+
+
+class SubExpr(AST):
+    def __init__(self, expr: AndExpr):
+        super().__init__()
+        self.expr = expr
+        expr.parent = self
+
+    def __str__(self):
+        return '({})'.format(str(self.expr))
+
+    def match(self, s: List[Token]) -> bool:
+        return self.expr.match(s)
 
 
 # Parser
@@ -204,27 +245,52 @@ class ParserException(Exception):
 
 
 class Parser:
+    """
+    A more or less LL(1) parser which use the following rules:
+
+    .. code-block:: text
+
+        searchExpr := andExpr EOF
+        andExpr := orExpr (AND? orExpr)*
+        orExpr := term (OR term)*
+        term := notExpr | singleTerm | group | subExpr
+        notExpr := (NOT | MINUS) term
+        singleTerm := WORD
+        group := QUOTE singleTerm* QUOTE
+        subExpr := LPAR andExpr RPAR
+
+    """
+
+    firsts_of_term = [MINUS, WORD, QUOTE, LPAR]
 
     def __init__(self, lexer):
         self.lexer = lexer
-        self.tokenizer = lexer.tokenize_and_filter()
+        self.tokenizer = lexer.tokenize()
         self.current_token = None
+        self.next_token = None
 
         self.next()
+        self.next()  # twice so that `current_token` is set
 
-    def next(self):
+    def next(self) -> None:
         """Get next token"""
 
-        try:
-            self.current_token = next(self.tokenizer)
-        except StopIteration:
-            self.current_token = Token(EOF, None)
+        self.current_token = self.next_token
 
-    def eat(self, token_type):
+        try:
+            self.next_token = next(self.tokenizer)
+        except StopIteration:
+            self.next_token = Token(EOF, None)
+
+    def peek(self) -> Token:
+        """Check the next token"""
+
+        return self.next_token
+
+    def eat(self, token_type: str) -> None:
         """Consume the token if of the right type
 
         :param token_type: the token type
-        :type token_type: str
         :raise ParserException: if not of the correct type
         """
         if self.current_token.type == token_type:
@@ -232,103 +298,176 @@ class Parser:
         else:
             raise ParserException(self.current_token, 'token must be {}'.format(token_type))
 
-    def term(self):
+    def search_expr(self) -> SearchExpr:
         """
-
-        :rtype: SearchTerm
-        """
-
-        term = ''
-
-        if self.current_token.type == QUOTE:
-            self.eat(QUOTE)
-            while self.current_token.type != QUOTE:
-                term += self.current_token.value
-                self.next()
-
-            self.eat(QUOTE)
-
-        else:
-            term = self.current_token.value
-            self.eat(WORD)
-
-        return SearchTerm(term)
-
-    def not_expr(self):
-        """
-
-        :rtype: NotExpr
-        """
-
-        self.eat(MINUS)
-        node = self.term()
-        return NotExpr(node)
-
-    def sequence(self):
-        """
-
-        :rtype: AST
-        """
-
-        seq = []
-        seq_type = None
-
-        while self.current_token.type in [START_PAR, QUOTE, SPACE, MINUS, WORD]:
-            t = self.current_token.type
-            v = self.current_token.value
-
-            if t == WORD:
-                if v in ['OR', 'AND']:
-                    if seq_type is not None:
-                        if v != seq_type:
-                            raise ParserException(self.current_token, '{} in a {} expression'.format(v, seq_type))
-                        else:
-                            self.next()
-                    else:
-                        seq_type = v
-                        self.next()
-                else:
-                    seq.append(self.term())
-            elif t == QUOTE:
-                seq.append(self.term())
-            elif t == MINUS:
-                seq.append(self.not_expr())
-            elif t == START_PAR:
-                self.eat(START_PAR)
-                seq.append(self.sequence())
-                self.eat(END_PAR)
-            elif t == SPACE:
-                self.eat(SPACE)
-            else:
-                raise ParserException(self.current_token, 'unhandled case ?!?')
-
-            if seq_type is None and len(seq) == 2:
-                seq_type = 'AND'
-
-        if seq_type == 'AND':
-            return AndExprs(seq)
-        elif seq_type == 'OR':
-            return OrExprs(seq)
-        else:
-            if len(seq) == 1:
-                return seq[0]
-            else:
-                return AndExprs(seq)
-
-    def search_expr(self):
-        """
-
-        :rtype: SearchExpr
+        searchExpr := andExpr EOF
         """
 
         node = None
         if self.current_token.type != EOF:
-            node = self.sequence()
+            node = self.andExpr()
 
         self.eat(EOF)
 
         return SearchExpr(node)
 
+    def andExpr(self) -> AndExpr:
+        """
+        andExpr := orExpr (AND? orExpr)*
+        """
+
+        total_next = self.firsts_of_term.copy()
+        total_next.append(AND)
+
+        node_list = [self.orExpr()]
+
+        while self.current_token.type in total_next:
+            if self.current_token.type == AND:
+                self.eat(AND)
+            node_list.append(self.orExpr())
+
+        return AndExpr(node_list)
+
+    def orExpr(self) -> OrExpr:
+        """
+        orExpr := term (OR term)*
+        """
+
+        node_list = [self.term()]
+
+        while self.current_token.type == OR:
+            self.eat(OR)
+            node_list.append(self.term())
+
+        return OrExpr(node_list)
+
+    def term(self) -> Term:
+        """
+        term := notExpr | singleTerm | group | subExpr
+
+        firsts:
+
+        + notExpr: MINUS
+        + singleTerm : WORD
+        + group: QUOTE
+        + subExpr: LPAR
+        """
+
+        next_tok = self.current_token.type
+
+        if next_tok == MINUS:
+            return Term(self.notExpr())
+        elif next_tok == WORD:
+            return Term(self.singleTerm())
+        elif next_tok == QUOTE:
+            return Term(self.group())
+        elif next_tok == LPAR:
+            return Term(self.subExpr())
+        else:
+            raise ParserException(self.current_token, 'expected term firsts')
+
+    def notExpr(self) -> NotExpr:
+        """
+        notExpr := (NOT | MINUS) term
+        """
+
+        if self.current_token.type == MINUS:
+            self.eat(MINUS)
+        elif self.current_token.type == NOT:
+            self.eat(NOT)
+        else:
+            raise ParserException(self.current_token, 'expected MINUS or NOT')
+
+        return NotExpr(self.term())
+
+    def singleTerm(self) -> SingleTerm:
+        """
+        singleTerm := WORD
+        """
+
+        w = self.current_token.value
+        self.eat(WORD)
+
+        return SingleTerm(w)
+
+    def group(self) -> Group:
+        """
+        group := QUOTE singleTerm* QUOTE
+
+        Note: this rule actually eats everything until the next quote
+        """
+        self.eat(QUOTE)
+
+        word_list = []
+
+        while self.current_token.type != QUOTE:  # eat everything until next quote
+            word_list.append(self.current_token.value)
+            self.next()
+
+        self.eat(QUOTE)
+        return Group(word_list)
+
+    def subExpr(self) -> SubExpr:
+        """
+        subExpr := LPAR andExpr RPAR
+        """
+        self.eat(LPAR)
+        s = SubExpr(self.andExpr())
+        self.eat(RPAR)
+
+        return s
+
 
 def parse(expr):
     return Parser(Lexer(expr)).search_expr()
+
+
+class Analyzer:
+    """
+    Input > tokenizer > Token filter
+    """
+
+    def __init__(self, input_: str):
+        self.input = input_
+        self.pos = 0
+        self.len = len(input_)
+
+    def tokenize(self) -> Iterator[Token]:
+        """Stop after every non-alphanumeric character
+        """
+
+        while self.pos < self.len:
+            pos = self.pos
+            next_break = -1
+            for i, l in enumerate(self.input[pos:]):
+                if not l.isalnum():
+                    next_break = self.pos + i
+                    break
+            if next_break == -1:
+                next_break = self.len
+
+            yield Token(WORD, self.input[pos:next_break])
+
+            self.pos = next_break + 1  # skip break
+
+    def filter(self) -> Iterator[Token]:
+        """
+
+        + Lowercase everything
+        + Remove empty tokens
+        + Remove french stopwords
+        """
+        for t in self.tokenize():
+            if t.value == '':
+                continue
+
+            if t.value is not None:
+                t.value = t.value.lower()
+                if t.value in FRENCH_STOPWORDS:
+                    continue
+
+            yield t
+
+
+def analyze(inp: str):
+    return list(Analyzer(inp).filter())

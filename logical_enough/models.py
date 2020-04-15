@@ -1,10 +1,17 @@
 from logical_enough import db
 
 
-class User(db.Model):
-    """An user"""
+class BaseModel(db.Model):
+    __abstract__ = True
 
     id = db.Column(db.Integer, primary_key=True)
+    date_created = db.Column(db.DateTime, default=db.func.current_timestamp())
+    date_modified = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
+
+
+class User(BaseModel):
+    """An user"""
+
     name = db.Column(db.Text)
     is_admin = db.Column(db.Boolean, default=False)
 
@@ -13,10 +20,9 @@ class User(db.Model):
         self.is_admin = is_admin
 
 
-class Challenge(db.Model):
+class Challenge(BaseModel):
     """A challenge"""
 
-    id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.Text)
     is_public = db.Column(db.Boolean)
 
@@ -28,9 +34,8 @@ class Challenge(db.Model):
         return Question.query.filter(Question.challenge.is_(self.id)).all()
 
 
-class Question(db.Model):
+class Question(BaseModel):
 
-    id = db.Column(db.Integer, primary_key=True)
     challenge = db.Column(db.Integer, db.ForeignKey(Challenge.id, ondelete='CASCADE'))
     position = db.Column(db.Integer)
     wrong_documents = db.Column(db.Text)
@@ -60,9 +65,8 @@ class Question(db.Model):
         return self.wrong_documents.split(Question.SEP)
 
 
-class UserChallenge(db.Model):
+class UserChallenge(BaseModel):
 
-    id = db.Column(db.Integer, primary_key=True)
     user = db.Column(db.Integer, db.ForeignKey(User.id, ondelete='CASCADE'))
     challenge = db.Column(db.Integer, db.ForeignKey(Challenge.id, ondelete='CASCADE'))
     is_done = db.Column(db.Boolean, default=False)
@@ -75,9 +79,8 @@ class UserChallenge(db.Model):
         self.current_question = current_question
 
 
-class Answer(db.Model):
+class Answer(BaseModel):
 
-    id = db.Column(db.Integer, primary_key=True)
     question = db.Column(db.Integer, db.ForeignKey(Question.id, ondelete='CASCADE'))
     answer = db.Column(db.Text)
     user = db.Column(db.Integer, db.ForeignKey(User.id, ondelete='CASCADE'))

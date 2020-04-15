@@ -13,13 +13,14 @@
         </h1>
 
         <div class="well">
-            {{ question.hint_expr }}
+            <code>{{ question.hint_expr }}</code>
         </div>
 
         <table class="table table-bordered">
             <thead>
                 <tr>
                     <th>Utilisateur</th>
+                    <th>Date</th>
                     <th>Réponse</th>
                 </tr>
             </thead>
@@ -27,7 +28,8 @@
                 {% for p in answers %}
                     <tr>
                         <td>{{ users[p.user].name }}</td>
-                        <td>{{ p.answer }}</td>
+                        <td>{{ p.date_created }}</td>
+                        <td><code>{{ p.answer }}</code></td>
                     </tr>
                 {% endfor %}
             </tbody>

@@ -225,7 +225,7 @@ class AdminQuestionPage(AdminContextMixin, GetObjectMixin, FormView):
         wrong_docs = []
 
         for d in documents:
-            if search_expression.match(d):
+            if search_expression.match(logic.analyze(d)):
                 good_docs.append(d)
             else:
                 wrong_docs.append(d)

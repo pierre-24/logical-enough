@@ -20,7 +20,7 @@
             <tbody>
                 {% for p in questions %}
                     <tr>
-                        <td><a href="{{ url_for('admin.question', id=p.id, challenge_id=p.challenge) }}">{{ p.hint_expr }}</a></td>
+                        <td><a href="{{ url_for('admin.question', id=p.id, challenge_id=p.challenge) }}"><code>{{ p.hint_expr }}</code></a></td>
                         <td>{{ p.hint }}</td>
                         <td>
                             {{ m.gen_delete_dialog(p.id, p.hint_expr, url_for('admin.question-delete', id=p.id, challenge_id=p.challenge), 'Question') }}
