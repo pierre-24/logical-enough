@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% import "macros.inc.html" as m %}
+
+{% block title %}Explications{% endblock %}
+
+{% block page_content %}
+    <div class="container" id="explain">
+        <h1>Explications</h1>
+
+        <p>
+            Les documents (pages webs, articles ...) que vous recherchez contiennent différents termes, généralement des <b>noms</b> (d'objet, de molécules, de concepts, etc).
+            Le but d'une expression logique de recherche est de sélectionner les documents contenant les termes qui vous intéressent.
+            Ainsi, si vous cherchez des informations sur le moment dipolaire, il parait logique que vous aller entrer comme requête <code>moment AND dipolaire</code>, ou plus simplement <code>moment dipolaire</code> (l'opérateur <code>AND</code> est implicite):
+        </p>
+
+        {{ m.gen_test("moment dipolaire", "Le texte s'illumine en vert si ça correspond. Vous noterez que ça ne fonctionne que si les deux termes sont présents (dans n'importe quel ordre).") }}
+
+        <p>
+            Néanmoins, si vous voulez avoir plus de résultats, vous pourriez vous tourner vers l'anglais et utiliser <code>dipole moment</code>.
+            Pour combiner les deux, vous ne pouvez pas écrire simplement <code>moment dipolaire dipole moment</code>, car dans ce cas, c'est les documents contenant les 4 termes à la fois qui ressortirait.
+            Vous pouvez utiliser l'opérateur logique <code>OR</code>:
+        </p>
+
+        {{ m.gen_test("(moment dipolaire) OR (dipole moment)", "Notez que ça fonctionne également avec les 4 termes à la fois, vu qu'il s'agit du \"OU\" logique.") }}
+
+        <p>Les parenthèses sont importantes. En effet, <code>a b OR c</code> est interprété comme <code>a (b OR c)</code> et non <code>(a b) OR c</code> (<code>OR</code> a précédence sur <code>AND</code>). </p>
+
+        <p>
+            L'opérateur <code>NOT</code> (utilisez <code>-</code> sur goolgle) vous permet d'exclure des termes que vous ne souhaitez pas.
+            Par exemple, si vous utilisez juste <code>dipole</code>, vous allez probablement tomber sur le <a href="https://en.wikipedia.org/wiki/Magnetic_dipole">dipole magnétique</a>.
+            Vous pouvez donc également choisir d'exclure ce terme.
+        </p>
+
+        {{ m.gen_test("dipole -magnetic", "Notez que ça fonctionne évidemment pour \"dipole\" seul.") }}
+
+        <p>
+            Un autre opérateur utile est le <span style="text-decoration: line-through">Joaquin Phoenix</span> <a href="https://en.wikipedia.org/wiki/Joker_(character)">joker</a> (<i>wildcard</i> en anglais).
+            Celui-ci remplace n'importe quelle séquence de caractères alphanumériques (même vide). Ainsi, <code>attent*</code> fonctionne aussi bien pour "<b>attent</b>e" que pour "<b>attent</b>if" ou que pour "<b>attent</b>ion" (petit défaut, ceci dit, il fonctionne aussi pour le mot <a href="https://www.woorden.org/woord/attent">attent</a> en nérlandais).
+            Dès lors,
+        </p>
+
+        {{ m.gen_test("dipol* moment", "Ce qui fonctionne aussi bien pour \"moment dipolaire\" que pour \"dipole moment\".") }}
+
+        <p>Finalement, vous pouvez forcer des termes à être groupés dans un ordre bien précis en utilisant les guillemets:</p>
+
+        {{ m.gen_test("\"moment dipolaire\"", "Cette fois si, ça ne fonctionne pas pour la phrase \"dipolaire, le moment !\", car les termes doivent être groupés et dans le bon ordre.") }}
+
+        <p>Évidemment, vous pouvez combiner tout cela.</p>
+
+        <div class="panel panel-default panel-info">
+            <div class="panel-heading">
+                En résumé
+            </div>
+          <div class="panel-body">
+                <ul>
+                    <li>Commencez par faire une liste de synonymes.</li>
+                    <li>N'hésitez pas à chercher leurs traductions sur <a href="https://translate.google.com/">Google translate</a>, <a href="https://www.reverso.net/text_translation.aspx?lang=FR">Réverso</a> ou autres.</li>
+                    <li>Regroupez le tout avec les opérateurs <code>AND</code> et <code>OR</code> approprié.</li>
+                    <li>Éliminez des indésirables avec <code>NOT</code>.</li>
+                </ul>
+              Et, par exemple, ça vous donne <code>(moment dipolaire OR electrique) OR (dipole moment -magnetic)</code>.
+          </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script>
+        documents_tests_setup();
+    </script>
+{% endblock %}

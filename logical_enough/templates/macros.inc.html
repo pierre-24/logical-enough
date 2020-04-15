@@ -21,3 +21,15 @@
         </div>
     </div>
 {% endmacro %}
+
+{% macro gen_test(expr, foother) %}
+        <div class="panel panel-default">
+          <div class="panel-body">
+                <input type="text" class="test-document form-control" data-expr="{{ expr }}" />
+          </div>
+            <div class="panel-footer">
+                Entrez ici une phrase et vérifiez qu'elle est trouvée par <code>{{ expr }}</code>.
+                {{ foother|safe }}
+            </div>
+        </div>
+{% endmacro %}
