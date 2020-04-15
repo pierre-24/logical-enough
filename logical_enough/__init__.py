@@ -34,14 +34,14 @@ def init_command():
 
     data_dir = settings.DATA_FILES_DIRECTORY
     path = os.path.join(data_dir, settings.DATABASE_FILE)
-        
+
     if os.path.exists(data_dir):
         shutil.rmtree(data_dir)
 
     os.mkdir(data_dir)
     print('!! Data files directory in {}'.format(data_dir))
 
-    if os.path.exists(path): # remove previous db
+    if os.path.exists(path):  # remove previous db
         os.remove(path)
 
     db.create_all()
@@ -49,7 +49,7 @@ def init_command():
 
     # add an admin user
     from logical_enough import models
-    
+
     name_admin = 'admin{}'.format(''.join([chr(random.randrange(65, 90)) for _ in range(6)]))
     user = models.User(name_admin, is_admin=True)
     db.session.add(user)
@@ -61,7 +61,7 @@ def create_app():
     # app
     app = Flask(__name__)
     app.config.update(settings.APP_SETTINGS)
-    
+
     # db
     db.init_app(app)
 
@@ -71,10 +71,10 @@ def create_app():
 
     # cli
     app.cli.add_command(init_command)
-    
+
     # api
     api = Api(app)
-    
+
     # Views
     from logical_enough.visitors import views as user_views
     app.add_url_rule('/', view_func=user_views.IndexPage.as_view('index'), endpoint='index')

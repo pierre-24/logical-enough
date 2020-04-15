@@ -109,7 +109,7 @@ class AST:
 
 
 class SearchExpr(AST):
-    def __init__(self, expr: Union["AndExpr", "OrExpr", None] = None):
+    def __init__(self, expr: Union['AndExpr', 'OrExpr', None] = None):
         super().__init__()
 
         self.expr = expr
@@ -138,7 +138,7 @@ class SeqExpr(AST):
 
 
 class AndExpr(SeqExpr):
-    def __init__(self, values: List["OrExpr"]):
+    def __init__(self, values: List['OrExpr']):
         super().__init__(values)
 
     def match(self, s: List[Token]) -> bool:
@@ -149,7 +149,7 @@ class AndExpr(SeqExpr):
 
 
 class OrExpr(SeqExpr):
-    def __init__(self, values: List["Term"]):
+    def __init__(self, values: List['Term']):
         super().__init__(values)
 
     def match(self, s: List[Token]) -> bool:
@@ -160,7 +160,7 @@ class OrExpr(SeqExpr):
 
 
 class Term(AST):
-    def __init__(self, expr: Union["NotExpr", "SingleTerm", "Group", "SubExpr"]):
+    def __init__(self, expr: Union['NotExpr', 'SingleTerm', 'Group', 'SubExpr']):
         super().__init__()
         self.expr = expr
         expr.parent = self
@@ -230,7 +230,7 @@ class SubExpr(AST):
         expr.parent = self
 
     def __str__(self):
-        return "({})".format(str(self.expr))
+        return '({})'.format(str(self.expr))
 
     def match(self, s: List[Token]) -> bool:
         return self.expr.match(s)
@@ -376,7 +376,7 @@ class Parser:
         elif self.current_token.type == NOT:
             self.eat(NOT)
         else:
-            raise ParserException(self.current_token, "expected MINUS or NOT")
+            raise ParserException(self.current_token, 'expected MINUS or NOT')
 
         return NotExpr(self.term())
 
