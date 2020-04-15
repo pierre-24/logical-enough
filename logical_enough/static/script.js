@@ -60,7 +60,7 @@ function documents_management_doc_check_match(input) {
         },
         success: function (result) {
             if ('matched' in result) {
-                documents_management_set_matched(input, result['matched']);
+                documents_management_set_matched(input, result['matched'], result['normalized_document'], true);
             } else {
                 documents_management_set_matched(input, false);
                 console.log(result);
@@ -74,14 +74,20 @@ function documents_management_doc_check_match(input) {
     });
 }
 
-function documents_management_set_matched(input, matched) {
+function documents_management_set_matched(input, matched, normalized = "", show_tooltip = false) {
      // input.css('border-color', matched ? 'green': 'red');
      input.css('background-color', matched ? '#cfc': '#fcc');
+     input.prop('title', 'normalisé: "' + normalized + '"');
+     input.tooltip('fixTitle');
+
+     if(show_tooltip)
+        input.tooltip('show')
 }
 
 function documents_management_add_doc($table, txt, check=true) {
-    let $inputText = $('<input type="text" class="inputDocument form-control" value="' + txt + '" />');
+    let $inputText = $('<input type="text" class="inputDocument form-control" value="' + txt + '" title="not set" />');
     $inputText.data('prev-value', txt);
+    $inputText.tooltip();
 
     $inputText.keyup(function () {
         documents_management_modify_doc($(this));
@@ -138,7 +144,7 @@ function documents_management_change_expr(input) {
                 let documents = result['documents'];
                 let i = 0;
                 $documents.each(function () {
-                    documents_management_set_matched($(this), documents[i]['matched']);
+                    documents_management_set_matched($(this), documents[i]['matched'], documents[i]['normalized_document']);
                     i += 1;
                 })
             } else {
