@@ -1,7 +1,7 @@
 import re
 
 from typing import Iterator, Union, List
-from logical_enough.french_stopwords import FRENCH_STOPWORDS
+from logical_enough.stopwords import FRENCH_STOPWORDS, ENGLISH_STOPWORDS
 
 EOF = 'EOF'
 MINUS = '-'
@@ -455,7 +455,7 @@ class Analyzer:
 
         + Lowercase everything
         + Remove empty tokens
-        + Remove french stopwords
+        + Remove french and english stopwords
         """
         for t in self.tokenize():
             if t.value == '':
@@ -464,6 +464,8 @@ class Analyzer:
             if t.value is not None:
                 t.value = t.value.lower()
                 if t.value in FRENCH_STOPWORDS:
+                    continue
+                if t.value in ENGLISH_STOPWORDS:
                     continue
 
             yield t

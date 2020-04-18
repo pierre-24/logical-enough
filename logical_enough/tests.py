@@ -29,12 +29,14 @@ class TestLogic(TestCase):
     def test_parser(self):
 
         exprs = [
-            'a',
-            '-a',
-            'a b',
-            'a OR b',
-            '(a OR b) c',
-            'a OR b c'
+            'w',
+            '-w',
+            'w b',
+            'w OR b',
+            '(w OR b) x',
+            'w OR b x',
+            'w* OR b',
+            '"w x" OR b'
         ]
 
         for e in exprs:
@@ -44,19 +46,19 @@ class TestLogic(TestCase):
             self.assertEqual(str(s), e)
 
     def test_analyzer(self):
-        m = ['a', 'b', 'x', 'z']
-        mx = list(t.value for t in logic.Analyzer('a b c x y z').filter())
+        m = ['w', 'b', 'x', 'z']
+        mx = list(t.value for t in logic.Analyzer('w b c x y z').filter())
         self.assertEqual(m, mx)
 
     def test_match(self):
         exprs_match = [
             ('x', ['x', 'x z', 'z x'], ['z', '']),
-            ('-a', ['b', ''], ['a']),
-            ('a OR b', ['a', 'a b', 'b', 'a x'], ['x', '']),
-            ('(a OR b) x', ['a x', 'b x'], ['a', 'b', 'x', '']),
-            ('a OR -a', ['a', 'b', ''], []),
-            ('a*', ['a', 'ab', 'x a', 'ax az'], ['b', 'x', 'xa', 'xax']),
-            ('"a b"', ['a b', 'a b x', 'x a b x'], ['a', 'b', 'a x b', 'b a', 'ab'])
+            ('-w', ['b', ''], ['w']),
+            ('w OR b', ['w', 'w b', 'b', 'w x'], ['x', '']),
+            ('(w OR b) x', ['w x', 'b x'], ['w', 'b', 'x', '']),
+            ('w OR -w', ['w', 'b', ''], []),
+            ('w*', ['w', 'wb', 'x w', 'wx wz'], ['b', 'x', 'xw', 'xwx']),
+            ('"w b"', ['w b', 'w b x', 'x w b x'], ['w', 'b', 'w x b', 'b a', 'ab'])
         ]
 
         for e, st, nst in exprs_match:
@@ -146,13 +148,13 @@ class TestAPI(TestFlask):
             return j
 
         # correct behavior
-        self.assertTrue(make_request('a', 'a')['matched'])
+        self.assertTrue(make_request('w', 'w')['matched'])
 
-        self.assertFalse(make_request('-a', 'a')['matched'])
-        self.assertFalse(make_request('', 'a')['matched'])
-        self.assertFalse(make_request('a', '')['matched'])
+        self.assertFalse(make_request('-w', 'w')['matched'])
+        self.assertFalse(make_request('', 'w')['matched'])
+        self.assertFalse(make_request('w', '')['matched'])
 
-        self.assertTrue(make_request('"a b"', 'a b')['matched'])
+        self.assertTrue(make_request('"w b"', 'w b')['matched'])
 
         # error behavior
         self.assertIn('message', make_request('a (b OR c', 'a', status=400))  # unclosed parenthesis
@@ -166,7 +168,7 @@ class TestAPI(TestFlask):
             j = json.loads(response.get_data().decode())
             return j
 
-        result = make_request('a OR b', ['a', 'b', 'x'])
+        result = make_request('w OR b', ['w', 'b', 'x'])
         matched = [d['matched'] for d in result['documents']]
 
         self.assertEqual(matched, [True, True, False])
@@ -209,7 +211,7 @@ class TestAPI(TestFlask):
         self.assertEqual(Question.query.count(), question_count + 1)
         question_1 = Question.query.order_by(Question.id.desc()).first()
 
-        search_expression_2 = logic.parse('a OR -b')
+        search_expression_2 = logic.parse('w OR -b')
         response = self.client.post(flask.url_for('admin.question-create', id=challenge.id), data={
             'hint_expr': str(search_expression_2),
             'hint': '',
@@ -242,7 +244,7 @@ class TestAPI(TestFlask):
         # wrong answer to first question
         answer_count = Answer.query.count()
 
-        test_expr = logic.parse('a')
+        test_expr = logic.parse('w')
         j = make_request(str(test_expr), self.admin.id, challenge.id, question_1.id)
         self.assertFalse(j['question_end'])
         self.assertFalse(j['challenge_end'])
@@ -483,8 +485,8 @@ class TestViews(TestFlask):
         # add question
         question_count = Question.query.count()
 
-        search_expression = logic.parse('a OR b')
-        documents = ['a', 'b', 'x']
+        search_expression = logic.parse('w OR b')
+        documents = ['w', 'b', 'x']
 
         hint = 'yyyy'
 
@@ -537,7 +539,7 @@ class TestViews(TestFlask):
                 self.assertIn(d, wrong_docs)
 
         # modify question: change search expr
-        search_expression = logic.parse('a OR -b')
+        search_expression = logic.parse('w OR -b')
 
         response = self.client.post(
             flask.url_for('admin.question', id=last_question.id, challenge_id=challenge.id),
