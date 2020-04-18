@@ -19,7 +19,8 @@ class TestLogic(TestCase):
             ('a', ['a', None]),
             ('-a', ['-', 'a', None]),
             ('a OR b', ['a', 'OR', 'b', None]),
-            ('(a* OR b) c', ['(', 'a*', 'OR', 'b', ')', 'c', None])
+            ('(a* OR b) c', ['(', 'a*', 'OR', 'b', ')', 'c', None]),
+            ('Dipôle Éléphant', ['dipole', 'elephant', None])  # lower the string and remove accents
         ]
 
         for e, toks in exprs:
