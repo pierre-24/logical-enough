@@ -85,7 +85,7 @@ class Lexer:
                 if word in ALL_OPERATORS:
                     yield Token(word, word, pos)
                 else:
-                    yield Token(WORD, word, pos)
+                    yield Token(WORD, word.lower(), pos)
 
         yield Token(EOF, None, self.pos)
 
