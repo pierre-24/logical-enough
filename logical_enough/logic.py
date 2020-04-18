@@ -1,7 +1,16 @@
 import re
+import unicodedata
 
 from typing import Iterator, Union, List
-from logical_enough.french_stopwords import FRENCH_STOPWORDS
+from logical_enough.stopwords import FRENCH_STOPWORDS, ENGLISH_STOPWORDS
+
+
+def remove_accents(input_str: str):
+    """Remove diacritics, due to https://stackoverflow.com/a/517974
+    """
+    nfkd_form = unicodedata.normalize('NFKD', input_str)
+    return u"".join([c for c in nfkd_form if not unicodedata.combining(c)])
+
 
 EOF = 'EOF'
 MINUS = '-'
@@ -64,7 +73,10 @@ class Lexer:
         return -1
 
     def tokenize(self) -> Iterator[Token]:
-        """Get the next token"""
+        """Get the next token
+
+        Note: WORD tokens are lowercased and accents are removed
+        """
 
         while self.pos < len(self.input):
             pos = self.pos
@@ -85,7 +97,7 @@ class Lexer:
                 if word in ALL_OPERATORS:
                     yield Token(word, word, pos)
                 else:
-                    yield Token(WORD, word, pos)
+                    yield Token(WORD, remove_accents(word.lower()), pos)
 
         yield Token(EOF, None, self.pos)
 
@@ -453,17 +465,19 @@ class Analyzer:
     def filter(self) -> Iterator[Token]:
         """
 
-        + Lowercase everything
+        + Lowercase everything and remove accents
         + Remove empty tokens
-        + Remove french stopwords
+        + Remove french and english stopwords
         """
         for t in self.tokenize():
             if t.value == '':
                 continue
 
             if t.value is not None:
-                t.value = t.value.lower()
+                t.value = remove_accents(t.value.lower())
                 if t.value in FRENCH_STOPWORDS:
+                    continue
+                if t.value in ENGLISH_STOPWORDS:
                     continue
 
             yield t
